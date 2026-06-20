@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Voice Reader</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F7F4EF;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE7;
+    --border: rgba(0,0,0,0.1);
+    --text: #1A1814;
+    --muted: #7A7468;
+    --accent: #2D5016;
+    --accent-light: #E8F0E0;
+    --accent-mid: #4A7A28;
+    --highlight: #FAC755;
+    --highlight-bg: #FFF8E1;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  body {
+    font-family: Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 700px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+
+  header { text-align: center; margin-bottom: 2rem; }
+  h1 { font-family: Georgia, serif; font-size: 1.7rem; font-weight: normal; letter-spacing: -0.02em; }
+  .tagline { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* Resume banner */
+  #resume-banner {
+    display: none;
+    background: #E8F5E9;
+    border: 1px solid #A5D6A7;
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    align-items: center;
+    gap: 12px;
+  }
+  .banner-icon { font-size: 24px; flex-shrink: 0; }
+  .banner-text { flex: 1; }
+  .banner-text strong { display: block; font-size: 14px; color: #2E7D32; }
+  .banner-text span { font-size: 12px; color: #388E3C; }
+  .banner-btns { display: flex; gap: 8px; flex-shrink: 0; }
+  .btn-resume {
+    background: #2E7D32; color: white; border: none;
+    border-radius: var(--radius-sm); padding: 8px 16px;
+    font-size: 13px; font-weight: bold; cursor: pointer;
+  }
+  .btn-resume:hover { background: #1B5E20; }
+  .btn-clear {
+    background: none; border: 1px solid #A5D6A7; color: #388E3C;
+    border-radius: var(--radius-sm); padding: 8px 12px;
+    font-size: 12px; cursor: pointer;
+  }
+  .btn-clear:hover { background: #C8E6C9; }
+
+  /* Drop zone */
+  #drop-zone {
+    background: var(--surface);
+    border: 1.5px dashed rgba(0,0,0,0.15);
+    border-radius: var(--radius);
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  #drop-zone:hover { border-color: var(--accent-mid); background: var(--accent-light); }
+  .drop-icon { font-size: 40px; display: block; margin-bottom: 10px; }
+  .drop-title { font-family: Georgia, serif; font-size: 1.1rem; margin-bottom: 6px; }
+  .drop-sub { font-size: 13px; color: var(--muted); }
+  .drop-note { font-size: 11px; color: var(--muted); margin-top: 10px; opacity: 0.7; }
+  #file-input { display: none; }
+
+  /* Reader */
+  #reader { display: none; flex-direction: column; gap: 14px; }
+
+  .book-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  #book-title { font-size: 13px; font-weight: bold; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #book-badge { font-size: 11px; background: var(--surface2); border-radius: 20px; padding: 3px 10px; color: var(--muted); white-space: nowrap; }
+
+  /* Text display with word highlighting */
+  #text-display {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    min-height: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: Georgia, serif;
+    font-size: 15px;
+    line-height: 2;
+    color: var(--text);
+    word-spacing: 2px;
+  }
+  .word { display: inline; cursor: default; border-radius: 3px; padding: 1px 0; transition: background 0.05s; }
+  .word.active { background: var(--highlight); color: #2C2C2A; border-radius: 3px; padding: 1px 3px; }
+  .word.spoken { background: var(--highlight-bg); }
+
+  /* Controls */
+  .controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+
+  .play-row { display: flex; align-items: center; gap: 12px; }
+
+  #play-btn {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: background 0.15s;
+    font-size: 22px; color: white;
+  }
+  #play-btn:hover { background: var(--accent-mid); }
+
+  .prog-wrap { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  input[type=range] {
+    -webkit-appearance: none; width: 100%; height: 5px;
+    border-radius: 5px; background: var(--surface2); outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent); border: none; cursor: pointer;
+  }
+  .page-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+
+  #reset-btn {
+    background: var(--surface2); border: none; border-radius: var(--radius-sm);
+    padding: 8px 14px; cursor: pointer; font-size: 12px; color: var(--muted);
+  }
+  #reset-btn:hover { background: #ddd; }
+
+  .setting-row { display: flex; align-items: center; gap: 10px; }
+  .setting-row label { font-size: 12px; color: var(--muted); min-width: 44px; }
+  .setting-row input[type=range] { flex: 1; }
+  .val { font-size: 12px; font-weight: bold; color: var(--accent); min-width: 36px; text-align: right; }
+
+  /* Voice info pill */
+  .voice-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent-light); border-radius: 20px;
+    padding: 4px 12px; font-size: 12px; color: var(--accent);
+  }
+
+  #save-note { font-size: 11px; color: var(--muted); text-align: center; min-height: 16px; font-style: italic; }
+  #status { font-size: 12px; color: var(--muted); text-align: center; min-height: 16px; }
+
+  #new-btn {
+    background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 7px 14px; font-size: 12px; color: var(--muted);
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+    font-family: Arial, sans-serif;
+  }
+  #new-btn:hover { background: var(--surface2); }
+
+  footer { text-align: center; margin-top: 3rem; font-size: 11px; color: var(--muted); opacity: 0.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>&#128218; PDF Voice Reader</h1>
+    <p class="tagline">Free &middot; unlimited &middot; remembers your place</p>
+  </header>
+
+  <!-- Resume banner -->
+  <div id="resume-banner">
+    <div class="banner-icon">&#128278;</div>
+    <div class="banner-text">
+      <strong id="banner-title"></strong>
+      <span id="banner-pos"></span>
+    </div>
+    <div class="banner-btns">
+      <button class="btn-resume" onclick="resumeSaved()">&#9654; Resume</button>
+      <button class="btn-clear" onclick="clearSaved()">Clear</button>
+    </div>
+  </div>
+
+  <!-- Drop zone -->
+  <div id="drop-zone"
+    onclick="document.getElementById('file-input').click()"
+    ondragover="ondragover(event)" ondragleave="ondragleave(event)" ondrop="ondrop(event)">
+    <span class="drop-icon">&#128196;</span>
+    <p class="drop-title">Open a PDF book</p>
+    <p class="drop-sub">Click to choose a file &mdash; or drag and drop</p>
+    <p class="drop-note">Everything runs on your device &middot; no uploads &middot; no limits &middot; free forever</p>
+  </div>
+  <input type="file" id="file-input" accept=".pdf,application/pdf" onchange="loadPDF(this.files[0])">
+
+  <!-- Reader UI -->
+  <div id="reader">
+    <div class="book-bar">
+      <span id="book-title"></span>
+      <span id="book-badge"></span>
+    </div>
+
+    <div id="text-display"></div>
+
+    <div class="controls">
+      <div class="play-row">
+        <button id="play-btn" onclick="togglePlay()" aria-label="Play or pause">&#9654;</button>
+        <div class="prog-wrap">
+          <input type="range" id="progress" min="0" value="0" step="1" oninput="seekTo(this.value)">
+          <div class="page-labels">
+            <span id="cur-page">Page 1</span>
+            <span id="tot-pages"></span>
+          </div>
+        </div>
+        <button id="reset-btn" onclick="stopReading()">&#9632; Reset</button>
+      </div>
+
+      <div class="setting-row">
+        <label>Voice</label>
+        <span class="voice-pill">&#127908; Microsoft Jenny</span>
+      </div>
+
+      <div class="setting-row">
+        <label>Speed</label>
+        <input type="range" id="rate-slider" min="0.5" max="2" step="0.05" value="0.95"
+          oninput="document.getElementById('rate-val').textContent=parseFloat(this.value).toFixed(2)+'x'">
+        <span class="val" id="rate-val">0.95x</span>
+      </div>
+
+      <div class="setting-row">
+        <label>Pitch</label>
+        <input type="range" id="pitch-slider" min="0.5" max="1.5" step="0.1" value="1"
+          oninput="document.getElementById('pitch-val').textContent=parseFloat(this.value).toFixed(1)">
+        <span class="val" id="pitch-val">1.0</span>
+      </div>
+    </div>
+
+    <div id="save-note"></div>
+    <div id="status"></div>
+    <button id="new-btn" onclick="resetAll()">&#8635; Load another PDF</button>
+  </div>
+
+  <footer>Works on Chrome, Edge, Safari &middot; desktop &amp; mobile &middot; 100% free forever</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+var STORAGE_KEY = 'pdfReader_save';
+var pages = [];         // array of arrays of words per page
+var currentPage = 0;
+var playing = false;
+var jennyVoice = null;
+var wordEls = [];       // span elements for current page words
+var currentWordIdx = 0;
+var utterance = null;
+
+// ── Drag and drop ──────────────────────────────────────────────────────────
+function ondragover(e) { e.preventDefault(); document.getElementById('drop-zone').style.borderColor = '#4A7A28'; }
+function ondragleave(e) { document.getElementById('drop-zone').style.borderColor = ''; }
+function ondrop(e) { e.preventDefault(); document.getElementById('drop-zone').style.borderColor = ''; var f = e.dataTransfer.files[0]; if (f) loadPDF(f); }
+
+// ── LocalStorage persistence ───────────────────────────────────────────────
+function saveProgress() {
+  if (!pages.length) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      title: document.getElementById('book-title').textContent,
+      pages: pages,
+      currentPage: currentPage,
+      savedAt: new Date().toLocaleString()
+    }));
+    showSaveNote('&#128190; Progress saved at page ' + (currentPage + 1));
+  } catch(e) {
+    // localStorage may be full if PDF is very large
+    showSaveNote('Could not save — PDF may be too large for browser storage');
+  }
+}
+
+function loadSavedState() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    var state = JSON.parse(raw);
+    if (!state || !state.pages || !state.pages.length) return;
+    document.getElementById('banner-title').textContent = state.title || 'Saved book';
+    document.getElementById('banner-pos').textContent =
+      'Stopped at page ' + (state.currentPage + 1) + ' of ' + state.pages.length +
+      (state.savedAt ? ' \u00b7 ' + state.savedAt : '');
+    document.getElementById('resume-banner').style.display = 'flex';
+    window._savedState = state;
+  } catch(e) {}
+}
+
+function resumeSaved() {
+  var state = window._savedState;
+  if (!state) return;
+  pages = state.pages;
+  currentPage = state.currentPage;
+  document.getElementById('resume-banner').style.display = 'none';
+  document.getElementById('drop-zone').style.display = 'none';
+  document.getElementById('book-title').textContent = state.title || 'Saved book';
+  document.getElementById('book-badge').textContent = pages.length + ' pages';
+  document.getElementById('tot-pages').textContent = 'of ' + pages.length;
+  var prog = document.getElementById('progress');
+  prog.max = pages.length - 1;
+  prog.value = currentPage;
+  renderPage(currentPage);
+  document.getElementById('reader').style.display = 'flex';
+  setStatus('Resuming from page ' + (currentPage + 1) + ' \u2014 press play when ready');
+}
+
+function clearSaved() {
+  localStorage.removeItem(STORAGE_KEY);
+  document.getElementById('resume-banner').style.display = 'none';
+  window._savedState = null;
+}
+
+// ── PDF loading ────────────────────────────────────────────────────────────
+function loadPDF(file) {
+  if (!file) return;
+  setStatus('Reading PDF\u2026');
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    pdfjsLib.getDocument({ data: e.target.result }).promise.then(function(pdf) {
+      var total = pdf.numPages, fetched = 0;
+      var pageTexts = new Array(total);
+      pages = [];
+
+      function fetchPage(i) {
+        pdf.getPage(i).then(function(page) {
+          page.getTextContent().then(function(content) {
+            var text = content.items.map(function(it) { return it.str; }).join(' ').replace(/\s+/g, ' ').trim();
+            pageTexts[i - 1] = text;
+            fetched++;
+            setStatus('Loading\u2026 ' + fetched + '/' + total);
+            if (fetched === total) {
+              // Split each page into words array
+              pages = pageTexts
+                .filter(function(t) { return t && t.length > 10; })
+                .map(function(t) { return t.split(/\s+/).filter(function(w){ return w.length > 0; }); });
+
+              if (!pages.length) { setStatus('No readable text found. Is this a scanned PDF?'); return; }
+
+              document.getElementById('resume-banner').style.display = 'none';
+              document.getElementById('drop-zone').style.display = 'none';
+              document.getElementById('book-title').textContent = file.name.replace(/\.pdf$/i, '');
+              document.getElementById('book-badge').textContent = pages.length + ' pages';
+              document.getElementById('tot-pages').textContent = 'of ' + pages.length;
+              var prog = document.getElementById('progress');
+              prog.max = pages.length - 1;
+              prog.value = 0;
+              currentPage = 0;
+              renderPage(0);
+              document.getElementById('reader').style.display = 'flex';
+              setStatus('Ready \u2014 press play to start');
+              saveProgress();
+            }
+          });
+        });
+      }
+      for (var i = 1; i <= total; i++) fetchPage(i);
+    }).catch(function(err) { setStatus('Could not read PDF: ' + err.message); });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Page rendering with word spans ────────────────────────────────────────
+function renderPage(idx) {
+  var box = document.getElementById('text-display');
+  box.innerHTML = '';
+  wordEls = [];
+  currentWordIdx = 0;
+
+  if (!pages[idx]) return;
+  var words = pages[idx];
+  var frag = document.createDocumentFragment();
+
+  words.forEach(function(word, i) {
+    var span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = word;
+    span.dataset.idx = i;
+    frag.appendChild(span);
+    frag.appendChild(document.createTextNode(' '));
+    wordEls.push(span);
+  });
+
+  box.appendChild(frag);
+  box.scrollTop = 0;
+  document.getElementById('cur-page').textContent = 'Page ' + (idx + 1);
+  document.getElementById('progress').value = idx;
+}
+
+function highlightWord(idx) {
+  // Remove previous highlight
+  if (wordEls[currentWordIdx]) {
+    wordEls[currentWordIdx].classList.remove('active');
+    wordEls[currentWordIdx].classList.add('spoken');
+  }
+  currentWordIdx = idx;
+  var el = wordEls[idx];
+  if (!el) return;
+  el.classList.remove('spoken');
+  el.classList.add('active');
+
+  // Auto-scroll to keep word visible
+  var box = document.getElementById('text-display');
+  var elTop = el.offsetTop;
+  var elBottom = elTop + el.offsetHeight;
+  var boxScrollTop = box.scrollTop;
+  var boxBottom = boxScrollTop + box.clientHeight;
+  if (elTop < boxScrollTop + 40) box.scrollTop = elTop - 40;
+  else if (elBottom > boxBottom - 40) box.scrollTop = elBottom - box.clientHeight + 40;
+}
+
+function clearHighlights() {
+  wordEls.forEach(function(el) { el.classList.remove('active', 'spoken'); });
+  currentWordIdx = 0;
+}
+
+// ── Speech ─────────────────────────────────────────────────────────────────
+function togglePlay() {
+  if (!pages.length) return;
+  playing ? pauseReading() : startReading();
+}
+
+function startReading() {
+  playing = true;
+  document.getElementById('play-btn').innerHTML = '&#9646;&#9646;';
+  readPage(currentPage);
+}
+
+function readPage(idx) {
+  if (!playing || idx >= pages.length) { finishReading(); return; }
+  currentPage = idx;
+  renderPage(idx);
+  setStatus('Reading page ' + (idx + 1) + ' of ' + pages.length + '\u2026');
+
+  var text = pages[idx].join(' ');
+  utterance = new SpeechSynthesisUtterance(text);
+
+  // Set Jenny voice
+  utterance.voice = jennyVoice;
+  utterance.rate = parseFloat(document.getElementById('rate-slider').value);
+  utterance.pitch = parseFloat(document.getElementById('pitch-slider').value);
+  utterance.lang = 'en-US';
+
+  // Word boundary — highlight as it speaks
+  utterance.onboundary = function(e) {
+    if (e.name !== 'word') return;
+    // Find which word index this character offset corresponds to
+    var charCount = 0;
+    for (var i = 0; i < pages[idx].length; i++) {
+      if (charCount >= e.charIndex) {
+        highlightWord(i);
+        break;
+      }
+      charCount += pages[idx][i].length + 1; // +1 for space
+    }
+  };
+
+  utterance.onend = function() {
+    if (playing) {
+      currentPage = idx + 1;
+      saveProgress();
+      readPage(currentPage);
+    }
+  };
+
+  utterance.onerror = function(e) {
+    if (e.error !== 'interrupted' && e.error !== 'canceled') {
+      setStatus('Speech error: ' + e.error);
+    }
+  };
+
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utterance);
+}
+
+function pauseReading() {
+  playing = false;
+  speechSynthesis.cancel();
+  clearHighlights();
+  document.getElementById('play-btn').innerHTML = '&#9654;';
+  setStatus('Paused at page ' + (currentPage + 1) + ' \u2014 press play to continue');
+  saveProgress();
+}
+
+function stopReading() {
+  playing = false;
+  speechSynthesis.cancel();
+  clearHighlights();
+  currentPage = 0;
+  renderPage(0);
+  document.getElementById('play-btn').innerHTML = '&#9654;';
+  setStatus('Reset to beginning');
+  saveProgress();
+}
+
+function finishReading() {
+  playing = false;
+  clearHighlights();
+  document.getElementById('play-btn').innerHTML = '&#9654;';
+  setStatus('\u2728 Finished! You reached the end of the book.');
+  clearSaved();
+}
+
+function seekTo(val) {
+  var was = playing;
+  if (playing) { playing = false; speechSynthesis.cancel(); clearHighlights(); }
+  currentPage = parseInt(val);
+  renderPage(currentPage);
+  saveProgress();
+  if (was) { playing = true; document.getElementById('play-btn').innerHTML = '&#9646;&#9646;'; readPage(currentPage); }
+}
+
+function resetAll() {
+  stopReading();
+  pages = [];
+  wordEls = [];
+  document.getElementById('drop-zone').style.display = 'block';
+  document.getElementById('reader').style.display = 'none';
+  setStatus('');
+  loadSavedState();
+}
+
+// ── Voice setup ────────────────────────────────────────────────────────────
+function pickJenny() {
+  var all = speechSynthesis.getVoices();
+  if (!all.length) return;
+
+  // Priority order: Jenny online (neural) > Jenny > Aria online > Aria > any en-US
+  var priority = ['Microsoft Jenny Online', 'Microsoft Jenny', 'Microsoft Aria Online', 'Microsoft Aria', 'Microsoft Guy Online', 'Microsoft Guy'];
+  var found = null;
+  for (var p = 0; p < priority.length; p++) {
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].name.indexOf(priority[p]) !== -1) { found = all[i]; break; }
+    }
+    if (found) break;
+  }
+
+  // Fallback: any English voice
+  if (!found) {
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].lang.startsWith('en')) { found = all[i]; break; }
+    }
+  }
+
+  jennyVoice = found;
+  if (found) {
+    document.querySelector('.voice-pill').textContent = '\uD83C\uDF99\uFE0F ' + found.name;
+  }
+}
+
+speechSynthesis.onvoiceschanged = pickJenny;
+pickJenny();
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+var saveNoteTimer;
+function showSaveNote(msg) {
+  var el = document.getElementById('save-note');
+  el.innerHTML = msg;
+  clearTimeout(saveNoteTimer);
+  saveNoteTimer = setTimeout(function() { el.innerHTML = ''; }, 3000);
+}
+
+function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+// Load any saved state on startup
+loadSavedState();
+</script>
+</body>
+</html>

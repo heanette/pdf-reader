@@ -18,81 +18,129 @@
     --accent-mid: #4A7A28;
     --highlight: #FAC755;
     --highlight-bg: #FFF8E1;
+    --danger: #C62828;
+    --danger-light: #FFEBEE;
     --radius: 14px;
     --radius-sm: 8px;
   }
-  body {
-    font-family: Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-  }
-  .wrap { max-width: 700px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  body { font-family: Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .wrap { max-width: 700px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
 
-  header { text-align: center; margin-bottom: 2rem; }
-  h1 { font-family: Georgia, serif; font-size: 1.7rem; font-weight: normal; letter-spacing: -0.02em; }
-  .tagline { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  header { text-align: center; margin-bottom: 1.5rem; }
+  h1 { font-family: Georgia, serif; font-size: 1.6rem; font-weight: normal; letter-spacing: -0.02em; }
+  .tagline { font-size: 12px; color: var(--muted); margin-top: 3px; }
 
-  /* Resume banner */
-  #resume-banner {
-    display: none;
-    background: #E8F5E9;
-    border: 1px solid #A5D6A7;
-    border-radius: var(--radius-sm);
-    padding: 14px 16px;
-    margin-bottom: 16px;
-    align-items: center;
-    gap: 12px;
-  }
-  .banner-icon { font-size: 24px; flex-shrink: 0; }
-  .banner-text { flex: 1; }
-  .banner-text strong { display: block; font-size: 14px; color: #2E7D32; }
-  .banner-text span { font-size: 12px; color: #388E3C; }
-  .banner-btns { display: flex; gap: 8px; flex-shrink: 0; }
-  .btn-resume {
-    background: #2E7D32; color: white; border: none;
+  /* ── VIEWS ── */
+  #library-view, #reader-view { display: none; }
+
+  /* ── LIBRARY ── */
+  .lib-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .lib-header h2 { font-size: 14px; font-weight: bold; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
+
+  .add-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent); color: white; border: none;
     border-radius: var(--radius-sm); padding: 8px 16px;
     font-size: 13px; font-weight: bold; cursor: pointer;
   }
-  .btn-resume:hover { background: #1B5E20; }
-  .btn-clear {
-    background: none; border: 1px solid #A5D6A7; color: #388E3C;
-    border-radius: var(--radius-sm); padding: 8px 12px;
-    font-size: 12px; cursor: pointer;
-  }
-  .btn-clear:hover { background: #C8E6C9; }
+  .add-btn:hover { background: var(--accent-mid); }
 
   /* Drop zone */
   #drop-zone {
     background: var(--surface);
     border: 1.5px dashed rgba(0,0,0,0.15);
     border-radius: var(--radius);
-    padding: 3rem 2rem;
+    padding: 2rem;
     text-align: center;
     cursor: pointer;
     transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 16px;
+    display: none;
   }
+  #drop-zone.visible { display: block; }
   #drop-zone:hover { border-color: var(--accent-mid); background: var(--accent-light); }
-  .drop-icon { font-size: 40px; display: block; margin-bottom: 10px; }
-  .drop-title { font-family: Georgia, serif; font-size: 1.1rem; margin-bottom: 6px; }
-  .drop-sub { font-size: 13px; color: var(--muted); }
-  .drop-note { font-size: 11px; color: var(--muted); margin-top: 10px; opacity: 0.7; }
+  .drop-title { font-family: Georgia, serif; font-size: 1rem; margin-bottom: 4px; }
+  .drop-sub { font-size: 12px; color: var(--muted); }
   #file-input { display: none; }
 
-  /* Reader */
-  #reader { display: none; flex-direction: column; gap: 14px; }
+  /* Storage bar */
+  .storage-bar-wrap { margin-bottom: 16px; }
+  .storage-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .storage-track { background: var(--surface2); border-radius: 4px; height: 5px; overflow: hidden; }
+  .storage-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s; }
+  .storage-fill.warn { background: #E65100; }
 
-  .book-bar {
+  /* Book cards */
+  .book-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .empty-state {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 10px 16px;
-    display: flex; align-items: center; gap: 10px;
+    border-radius: var(--radius);
+    padding: 3rem 2rem;
+    text-align: center;
+    color: var(--muted);
   }
-  #book-title { font-size: 13px; font-weight: bold; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #book-badge { font-size: 11px; background: var(--surface2); border-radius: 20px; padding: 3px 10px; color: var(--muted); white-space: nowrap; }
+  .empty-state .big { font-size: 36px; display: block; margin-bottom: 10px; }
+  .empty-state p { font-size: 13px; }
 
-  /* Text display with word highlighting */
+  .book-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .book-card:hover { border-color: var(--accent-mid); box-shadow: 0 2px 8px rgba(45,80,22,0.1); }
+
+  .book-card-icon {
+    width: 44px; height: 56px;
+    background: var(--accent-light);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .book-card-info { flex: 1; min-width: 0; }
+  .book-card-title { font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+  .book-card-meta { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+
+  .book-progress-track { background: var(--surface2); border-radius: 4px; height: 4px; overflow: hidden; }
+  .book-progress-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+
+  .book-card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+  .open-btn {
+    background: var(--accent); color: white; border: none;
+    border-radius: var(--radius-sm); padding: 7px 14px;
+    font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap;
+  }
+  .open-btn:hover { background: var(--accent-mid); }
+  .delete-btn {
+    background: none; border: none; color: var(--muted);
+    font-size: 11px; cursor: pointer; padding: 2px 4px;
+  }
+  .delete-btn:hover { color: var(--danger); }
+
+  /* ── READER ── */
+  .reader-topbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .back-btn {
+    background: var(--surface2); border: none; border-radius: var(--radius-sm);
+    padding: 8px 14px; font-size: 13px; color: var(--muted); cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .back-btn:hover { background: #ddd; }
+  #reader-book-title { font-size: 14px; font-weight: bold; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #reader-book-badge { font-size: 11px; color: var(--muted); background: var(--surface2); border-radius: 20px; padding: 3px 10px; white-space: nowrap; }
+
   #text-display {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -105,29 +153,27 @@
     font-size: 15px;
     line-height: 2;
     color: var(--text);
-    word-spacing: 2px;
+    margin-bottom: 12px;
   }
-  .word { display: inline; cursor: default; border-radius: 3px; padding: 1px 0; transition: background 0.05s; }
-  .word.active { background: var(--highlight); color: #2C2C2A; border-radius: 3px; padding: 1px 3px; }
+  .word { display: inline; border-radius: 3px; padding: 1px 0; }
+  .word.active { background: var(--highlight); color: #2C2C2A; padding: 1px 3px; }
   .word.spoken { background: var(--highlight-bg); }
 
-  /* Controls */
   .controls {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 1.25rem;
-    display: flex; flex-direction: column; gap: 14px;
+    display: flex; flex-direction: column; gap: 13px;
+    margin-bottom: 10px;
   }
 
   .play-row { display: flex; align-items: center; gap: 12px; }
-
   #play-btn {
     width: 52px; height: 52px; border-radius: 50%;
     background: var(--accent); border: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; transition: background 0.15s;
-    font-size: 22px; color: white;
+    flex-shrink: 0; font-size: 22px; color: white; transition: background 0.15s;
   }
   #play-btn:hover { background: var(--accent-mid); }
 
@@ -148,7 +194,7 @@
 
   #reset-btn {
     background: var(--surface2); border: none; border-radius: var(--radius-sm);
-    padding: 8px 14px; cursor: pointer; font-size: 12px; color: var(--muted);
+    padding: 8px 12px; cursor: pointer; font-size: 12px; color: var(--muted);
   }
   #reset-btn:hover { background: #ddd; }
 
@@ -156,71 +202,85 @@
   .setting-row label { font-size: 12px; color: var(--muted); min-width: 44px; }
   .setting-row input[type=range] { flex: 1; }
   .val { font-size: 12px; font-weight: bold; color: var(--accent); min-width: 36px; text-align: right; }
-
-  /* Voice info pill */
-  .voice-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--accent-light); border-radius: 20px;
-    padding: 4px 12px; font-size: 12px; color: var(--accent);
-  }
+  .voice-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-light); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--accent); }
 
   #save-note { font-size: 11px; color: var(--muted); text-align: center; min-height: 16px; font-style: italic; }
   #status { font-size: 12px; color: var(--muted); text-align: center; min-height: 16px; }
 
-  #new-btn {
-    background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
-    padding: 7px 14px; font-size: 12px; color: var(--muted);
-    cursor: pointer; display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
-    font-family: Arial, sans-serif;
+  /* Loading overlay */
+  #loading-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(247,244,239,0.92);
+    z-index: 100; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px;
   }
-  #new-btn:hover { background: var(--surface2); }
+  #loading-overlay.visible { display: flex; }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--accent-light);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading-msg { font-size: 13px; color: var(--muted); }
 
-  footer { text-align: center; margin-top: 3rem; font-size: 11px; color: var(--muted); opacity: 0.6; }
+  footer { text-align: center; margin-top: 2rem; font-size: 11px; color: var(--muted); opacity: 0.5; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>&#128218; PDF Voice Reader</h1>
-    <p class="tagline">Free &middot; unlimited &middot; remembers your place</p>
+    <p class="tagline">Your personal library &middot; free &middot; unlimited &middot; remembers your place in every book</p>
   </header>
 
-  <!-- Resume banner -->
-  <div id="resume-banner">
-    <div class="banner-icon">&#128278;</div>
-    <div class="banner-text">
-      <strong id="banner-title"></strong>
-      <span id="banner-pos"></span>
-    </div>
-    <div class="banner-btns">
-      <button class="btn-resume" onclick="resumeSaved()">&#9654; Resume</button>
-      <button class="btn-clear" onclick="clearSaved()">Clear</button>
-    </div>
+  <!-- Loading overlay -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div id="loading-msg">Reading PDF&hellip;</div>
   </div>
 
-  <!-- Drop zone -->
-  <div id="drop-zone"
-    onclick="document.getElementById('file-input').click()"
-    ondragover="ondragover(event)" ondragleave="ondragleave(event)" ondrop="ondrop(event)">
-    <span class="drop-icon">&#128196;</span>
-    <p class="drop-title">Open a PDF book</p>
-    <p class="drop-sub">Click to choose a file &mdash; or drag and drop</p>
-    <p class="drop-note">Everything runs on your device &middot; no uploads &middot; no limits &middot; free forever</p>
-  </div>
-  <input type="file" id="file-input" accept=".pdf,application/pdf" onchange="loadPDF(this.files[0])">
+  <!-- LIBRARY VIEW -->
+  <div id="library-view">
+    <div class="lib-header">
+      <h2>My Library</h2>
+      <button class="add-btn" onclick="toggleDropZone()">&#43; Add Book</button>
+    </div>
 
-  <!-- Reader UI -->
-  <div id="reader">
-    <div class="book-bar">
-      <span id="book-title"></span>
-      <span id="book-badge"></span>
+    <!-- Drop zone -->
+    <div id="drop-zone"
+      onclick="document.getElementById('file-input').click()"
+      ondragover="ondragover(event)" ondragleave="ondragleave(event)" ondrop="ondrop(event)">
+      <p class="drop-title">&#128196; Drop a PDF here or click to browse</p>
+      <p class="drop-sub">The book will be saved to your library automatically</p>
+    </div>
+    <input type="file" id="file-input" accept=".pdf,application/pdf" onchange="loadPDF(this.files[0])">
+
+    <!-- Storage indicator -->
+    <div class="storage-bar-wrap" id="storage-bar-wrap" style="display:none;">
+      <div class="storage-label">
+        <span>Library storage</span>
+        <span id="storage-label-val"></span>
+      </div>
+      <div class="storage-track"><div class="storage-fill" id="storage-fill"></div></div>
+    </div>
+
+    <!-- Book list -->
+    <div class="book-list" id="book-list"></div>
+  </div>
+
+  <!-- READER VIEW -->
+  <div id="reader-view">
+    <div class="reader-topbar">
+      <button class="back-btn" onclick="goToLibrary()">&#8592; Library</button>
+      <span id="reader-book-title"></span>
+      <span id="reader-book-badge"></span>
     </div>
 
     <div id="text-display"></div>
 
     <div class="controls">
       <div class="play-row">
-        <button id="play-btn" onclick="togglePlay()" aria-label="Play or pause">&#9654;</button>
+        <button id="play-btn" onclick="togglePlay()">&#9654;</button>
         <div class="prog-wrap">
           <input type="range" id="progress" min="0" value="0" step="1" oninput="seekTo(this.value)">
           <div class="page-labels">
@@ -233,16 +293,14 @@
 
       <div class="setting-row">
         <label>Voice</label>
-        <span class="voice-pill">&#127908; Microsoft Jenny</span>
+        <span class="voice-pill" id="voice-pill">&#127908; Microsoft Jenny</span>
       </div>
-
       <div class="setting-row">
         <label>Speed</label>
         <input type="range" id="rate-slider" min="0.5" max="2" step="0.05" value="0.95"
           oninput="document.getElementById('rate-val').textContent=parseFloat(this.value).toFixed(2)+'x'">
         <span class="val" id="rate-val">0.95x</span>
       </div>
-
       <div class="setting-row">
         <label>Pitch</label>
         <input type="range" id="pitch-slider" min="0.5" max="1.5" step="0.1" value="1"
@@ -253,7 +311,6 @@
 
     <div id="save-note"></div>
     <div id="status"></div>
-    <button id="new-btn" onclick="resetAll()">&#8635; Load another PDF</button>
   </div>
 
   <footer>Works on Chrome, Edge, Safari &middot; desktop &amp; mobile &middot; 100% free forever</footer>
@@ -263,86 +320,200 @@
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-var STORAGE_KEY = 'pdfReader_save';
-var pages = [];         // array of arrays of words per page
+var LIBRARY_INDEX_KEY = 'pdfLib_index'; // stores array of {id, title, totalPages, currentPage, addedAt}
+var BOOK_KEY_PREFIX   = 'pdfLib_book_'; // + id => stores pages array
+
+var library = [];       // array of book metadata
+var currentBookId = null;
+var pages = [];         // words[][] for current book
 var currentPage = 0;
 var playing = false;
 var jennyVoice = null;
-var wordEls = [];       // span elements for current page words
+var wordEls = [];
 var currentWordIdx = 0;
-var utterance = null;
+var dropZoneVisible = false;
 
-// ── Drag and drop ──────────────────────────────────────────────────────────
-function ondragover(e) { e.preventDefault(); document.getElementById('drop-zone').style.borderColor = '#4A7A28'; }
-function ondragleave(e) { document.getElementById('drop-zone').style.borderColor = ''; }
-function ondrop(e) { e.preventDefault(); document.getElementById('drop-zone').style.borderColor = ''; var f = e.dataTransfer.files[0]; if (f) loadPDF(f); }
+// ── Init ───────────────────────────────────────────────────────────────────
+window.onload = function() {
+  loadLibraryIndex();
+  pickJenny();
+  showLibrary();
+};
 
-// ── LocalStorage persistence ───────────────────────────────────────────────
-function saveProgress() {
-  if (!pages.length) return;
+// ── Library index ──────────────────────────────────────────────────────────
+function loadLibraryIndex() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      title: document.getElementById('book-title').textContent,
-      pages: pages,
-      currentPage: currentPage,
-      savedAt: new Date().toLocaleString()
-    }));
-    showSaveNote('&#128190; Progress saved at page ' + (currentPage + 1));
-  } catch(e) {
-    // localStorage may be full if PDF is very large
-    showSaveNote('Could not save — PDF may be too large for browser storage');
+    var raw = localStorage.getItem(LIBRARY_INDEX_KEY);
+    library = raw ? JSON.parse(raw) : [];
+  } catch(e) { library = []; }
+}
+
+function saveLibraryIndex() {
+  localStorage.setItem(LIBRARY_INDEX_KEY, JSON.stringify(library));
+}
+
+function getBookData(id) {
+  try {
+    var raw = localStorage.getItem(BOOK_KEY_PREFIX + id);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+function saveBookData(id, pages) {
+  try {
+    localStorage.setItem(BOOK_KEY_PREFIX + id, JSON.stringify(pages));
+    return true;
+  } catch(e) { return false; }
+}
+
+function deleteBook(id) {
+  localStorage.removeItem(BOOK_KEY_PREFIX + id);
+  library = library.filter(function(b) { return b.id !== id; });
+  saveLibraryIndex();
+  renderLibrary();
+  updateStorageBar();
+}
+
+function updateBookProgress(id, currentPage) {
+  var book = library.find(function(b) { return b.id === id; });
+  if (book) {
+    book.currentPage = currentPage;
+    book.lastRead = new Date().toLocaleString();
+    saveLibraryIndex();
   }
 }
 
-function loadSavedState() {
+// ── Storage bar ────────────────────────────────────────────────────────────
+function updateStorageBar() {
+  var used = 0;
   try {
-    var raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    var state = JSON.parse(raw);
-    if (!state || !state.pages || !state.pages.length) return;
-    document.getElementById('banner-title').textContent = state.title || 'Saved book';
-    document.getElementById('banner-pos').textContent =
-      'Stopped at page ' + (state.currentPage + 1) + ' of ' + state.pages.length +
-      (state.savedAt ? ' \u00b7 ' + state.savedAt : '');
-    document.getElementById('resume-banner').style.display = 'flex';
-    window._savedState = state;
+    for (var k in localStorage) {
+      if (localStorage.hasOwnProperty(k)) used += (localStorage[k].length + k.length) * 2;
+    }
   } catch(e) {}
+  var maxBytes = 5 * 1024 * 1024;
+  var pct = Math.min(100, Math.round(used / maxBytes * 100));
+  var wrap = document.getElementById('storage-bar-wrap');
+  if (library.length > 0) {
+    wrap.style.display = 'block';
+    document.getElementById('storage-fill').style.width = pct + '%';
+    document.getElementById('storage-fill').className = 'storage-fill' + (pct > 75 ? ' warn' : '');
+    document.getElementById('storage-label-val').textContent = pct + '% used of ~5MB';
+  } else {
+    wrap.style.display = 'none';
+  }
 }
 
-function resumeSaved() {
-  var state = window._savedState;
-  if (!state) return;
-  pages = state.pages;
-  currentPage = state.currentPage;
-  document.getElementById('resume-banner').style.display = 'none';
-  document.getElementById('drop-zone').style.display = 'none';
-  document.getElementById('book-title').textContent = state.title || 'Saved book';
-  document.getElementById('book-badge').textContent = pages.length + ' pages';
+// ── Views ──────────────────────────────────────────────────────────────────
+function showLibrary() {
+  stopReading();
+  document.getElementById('library-view').style.display = 'block';
+  document.getElementById('reader-view').style.display = 'none';
+  renderLibrary();
+  updateStorageBar();
+}
+
+function showReader(bookId) {
+  document.getElementById('library-view').style.display = 'none';
+  document.getElementById('reader-view').style.display = 'block';
+
+  var book = library.find(function(b) { return b.id === bookId; });
+  if (!book) return;
+
+  var data = getBookData(bookId);
+  if (!data) { alert('Book data not found. Please re-add the book.'); showLibrary(); return; }
+
+  currentBookId = bookId;
+  pages = data;
+  currentPage = book.currentPage || 0;
+
+  document.getElementById('reader-book-title').textContent = book.title;
+  document.getElementById('reader-book-badge').textContent = pages.length + ' pages';
   document.getElementById('tot-pages').textContent = 'of ' + pages.length;
   var prog = document.getElementById('progress');
   prog.max = pages.length - 1;
   prog.value = currentPage;
+
   renderPage(currentPage);
-  document.getElementById('reader').style.display = 'flex';
   setStatus('Resuming from page ' + (currentPage + 1) + ' \u2014 press play when ready');
 }
 
-function clearSaved() {
-  localStorage.removeItem(STORAGE_KEY);
-  document.getElementById('resume-banner').style.display = 'none';
-  window._savedState = null;
+function goToLibrary() {
+  // Save current position BEFORE stopping (stopReading resets to 0)
+  if (currentBookId) updateBookProgress(currentBookId, currentPage);
+  // Stop speech without resetting page counter
+  playing = false;
+  speechSynthesis.cancel();
+  clearHighlights();
+  document.getElementById('play-btn').innerHTML = '&#9654;';
+  showLibrary();
+}
+
+// ── Library rendering ──────────────────────────────────────────────────────
+function renderLibrary() {
+  var list = document.getElementById('book-list');
+  list.innerHTML = '';
+
+  if (library.length === 0) {
+    list.innerHTML = '<div class="empty-state"><span class="big">&#128218;</span><p>No books yet &mdash; click <strong>Add Book</strong> to get started</p></div>';
+    return;
+  }
+
+  library.forEach(function(book) {
+    var pct = book.totalPages > 0 ? Math.round(book.currentPage / book.totalPages * 100) : 0;
+    var card = document.createElement('div');
+    card.className = 'book-card';
+    card.innerHTML =
+      '<div class="book-card-icon">&#128218;</div>' +
+      '<div class="book-card-info">' +
+        '<div class="book-card-title">' + escHtml(book.title) + '</div>' +
+        '<div class="book-card-meta">Page ' + (book.currentPage + 1) + ' of ' + book.totalPages +
+          (book.lastRead ? ' &middot; Last read: ' + book.lastRead : ' &middot; Added: ' + book.addedAt) + '</div>' +
+        '<div class="book-progress-track"><div class="book-progress-fill" style="width:' + pct + '%"></div></div>' +
+      '</div>' +
+      '<div class="book-card-actions">' +
+        '<button class="open-btn">&#9654; Open</button>' +
+        '<button class="delete-btn">&#128465; Remove</button>' +
+      '</div>';
+
+    card.querySelector('.open-btn').onclick = function(e) { e.stopPropagation(); showReader(book.id); };
+    card.querySelector('.delete-btn').onclick = function(e) {
+      e.stopPropagation();
+      if (confirm('Remove "' + book.title + '" from your library?')) deleteBook(book.id);
+    };
+    card.onclick = function() { showReader(book.id); };
+    list.appendChild(card);
+  });
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Drop zone toggle ───────────────────────────────────────────────────────
+function toggleDropZone() {
+  dropZoneVisible = !dropZoneVisible;
+  var dz = document.getElementById('drop-zone');
+  if (dropZoneVisible) dz.classList.add('visible');
+  else dz.classList.remove('visible');
+}
+
+function ondragover(e) { e.preventDefault(); document.getElementById('drop-zone').style.borderColor = '#4A7A28'; }
+function ondragleave(e) { document.getElementById('drop-zone').style.borderColor = ''; }
+function ondrop(e) {
+  e.preventDefault(); document.getElementById('drop-zone').style.borderColor = '';
+  var f = e.dataTransfer.files[0]; if (f) loadPDF(f);
 }
 
 // ── PDF loading ────────────────────────────────────────────────────────────
 function loadPDF(file) {
   if (!file) return;
-  setStatus('Reading PDF\u2026');
+  showLoading('Reading PDF\u2026');
   var reader = new FileReader();
   reader.onload = function(e) {
     pdfjsLib.getDocument({ data: e.target.result }).promise.then(function(pdf) {
       var total = pdf.numPages, fetched = 0;
       var pageTexts = new Array(total);
-      pages = [];
 
       function fetchPage(i) {
         pdf.getPage(i).then(function(page) {
@@ -350,59 +521,68 @@ function loadPDF(file) {
             var text = content.items.map(function(it) { return it.str; }).join(' ').replace(/\s+/g, ' ').trim();
             pageTexts[i - 1] = text;
             fetched++;
-            setStatus('Loading\u2026 ' + fetched + '/' + total);
+            setLoadingMsg('Loading pages\u2026 ' + fetched + '/' + total);
             if (fetched === total) {
-              // Split each page into words array
-              pages = pageTexts
+              var wordPages = pageTexts
                 .filter(function(t) { return t && t.length > 10; })
                 .map(function(t) { return t.split(/\s+/).filter(function(w){ return w.length > 0; }); });
 
-              if (!pages.length) { setStatus('No readable text found. Is this a scanned PDF?'); return; }
+              if (!wordPages.length) { hideLoading(); alert('No readable text found. Is this a scanned PDF?'); return; }
 
-              document.getElementById('resume-banner').style.display = 'none';
-              document.getElementById('drop-zone').style.display = 'none';
-              document.getElementById('book-title').textContent = file.name.replace(/\.pdf$/i, '');
-              document.getElementById('book-badge').textContent = pages.length + ' pages';
-              document.getElementById('tot-pages').textContent = 'of ' + pages.length;
-              var prog = document.getElementById('progress');
-              prog.max = pages.length - 1;
-              prog.value = 0;
-              currentPage = 0;
-              renderPage(0);
-              document.getElementById('reader').style.display = 'flex';
-              setStatus('Ready \u2014 press play to start');
-              saveProgress();
+              // Save to library
+              var id = 'book_' + Date.now();
+              var title = file.name.replace(/\.pdf$/i, '');
+
+              var saved = saveBookData(id, wordPages);
+              if (!saved) {
+                hideLoading();
+                alert('Not enough browser storage to save this book. Try removing an existing book first.');
+                return;
+              }
+
+              library.push({
+                id: id,
+                title: title,
+                totalPages: wordPages.length,
+                currentPage: 0,
+                addedAt: new Date().toLocaleString()
+              });
+              saveLibraryIndex();
+              hideLoading();
+
+              // Hide drop zone and go straight to reader
+              document.getElementById('drop-zone').classList.remove('visible');
+              dropZoneVisible = false;
+              document.getElementById('file-input').value = '';
+              showReader(id);
+              updateStorageBar();
             }
           });
         });
       }
       for (var i = 1; i <= total; i++) fetchPage(i);
-    }).catch(function(err) { setStatus('Could not read PDF: ' + err.message); });
+    }).catch(function(err) { hideLoading(); alert('Could not read PDF: ' + err.message); });
   };
   reader.readAsArrayBuffer(file);
 }
 
-// ── Page rendering with word spans ────────────────────────────────────────
+// ── Page rendering ─────────────────────────────────────────────────────────
 function renderPage(idx) {
   var box = document.getElementById('text-display');
   box.innerHTML = '';
   wordEls = [];
   currentWordIdx = 0;
-
   if (!pages[idx]) return;
-  var words = pages[idx];
-  var frag = document.createDocumentFragment();
 
-  words.forEach(function(word, i) {
+  var frag = document.createDocumentFragment();
+  pages[idx].forEach(function(word, i) {
     var span = document.createElement('span');
     span.className = 'word';
     span.textContent = word;
-    span.dataset.idx = i;
     frag.appendChild(span);
     frag.appendChild(document.createTextNode(' '));
     wordEls.push(span);
   });
-
   box.appendChild(frag);
   box.scrollTop = 0;
   document.getElementById('cur-page').textContent = 'Page ' + (idx + 1);
@@ -410,7 +590,6 @@ function renderPage(idx) {
 }
 
 function highlightWord(idx) {
-  // Remove previous highlight
   if (wordEls[currentWordIdx]) {
     wordEls[currentWordIdx].classList.remove('active');
     wordEls[currentWordIdx].classList.add('spoken');
@@ -420,15 +599,10 @@ function highlightWord(idx) {
   if (!el) return;
   el.classList.remove('spoken');
   el.classList.add('active');
-
-  // Auto-scroll to keep word visible
   var box = document.getElementById('text-display');
-  var elTop = el.offsetTop;
-  var elBottom = elTop + el.offsetHeight;
-  var boxScrollTop = box.scrollTop;
-  var boxBottom = boxScrollTop + box.clientHeight;
-  if (elTop < boxScrollTop + 40) box.scrollTop = elTop - 40;
-  else if (elBottom > boxBottom - 40) box.scrollTop = elBottom - box.clientHeight + 40;
+  var elTop = el.offsetTop, elBottom = elTop + el.offsetHeight;
+  if (elTop < box.scrollTop + 40) box.scrollTop = elTop - 40;
+  else if (elBottom > box.scrollTop + box.clientHeight - 40) box.scrollTop = elBottom - box.clientHeight + 40;
 }
 
 function clearHighlights() {
@@ -455,44 +629,30 @@ function readPage(idx) {
   setStatus('Reading page ' + (idx + 1) + ' of ' + pages.length + '\u2026');
 
   var text = pages[idx].join(' ');
-  utterance = new SpeechSynthesisUtterance(text);
+  var utt = new SpeechSynthesisUtterance(text);
+  utt.voice = jennyVoice;
+  utt.rate = parseFloat(document.getElementById('rate-slider').value);
+  utt.pitch = parseFloat(document.getElementById('pitch-slider').value);
+  utt.lang = 'en-US';
 
-  // Set Jenny voice
-  utterance.voice = jennyVoice;
-  utterance.rate = parseFloat(document.getElementById('rate-slider').value);
-  utterance.pitch = parseFloat(document.getElementById('pitch-slider').value);
-  utterance.lang = 'en-US';
-
-  // Word boundary — highlight as it speaks
-  utterance.onboundary = function(e) {
+  utt.onboundary = function(e) {
     if (e.name !== 'word') return;
-    // Find which word index this character offset corresponds to
     var charCount = 0;
     for (var i = 0; i < pages[idx].length; i++) {
-      if (charCount >= e.charIndex) {
-        highlightWord(i);
-        break;
-      }
-      charCount += pages[idx][i].length + 1; // +1 for space
+      if (charCount >= e.charIndex) { highlightWord(i); break; }
+      charCount += pages[idx][i].length + 1;
     }
   };
 
-  utterance.onend = function() {
-    if (playing) {
-      currentPage = idx + 1;
-      saveProgress();
-      readPage(currentPage);
-    }
+  utt.onend = function() {
+    if (playing) { currentPage = idx + 1; saveProgress(); readPage(currentPage); }
   };
-
-  utterance.onerror = function(e) {
-    if (e.error !== 'interrupted' && e.error !== 'canceled') {
-      setStatus('Speech error: ' + e.error);
-    }
+  utt.onerror = function(e) {
+    if (e.error !== 'interrupted' && e.error !== 'canceled') setStatus('Speech error: ' + e.error);
   };
 
   speechSynthesis.cancel();
-  speechSynthesis.speak(utterance);
+  speechSynthesis.speak(utt);
 }
 
 function pauseReading() {
@@ -508,19 +668,23 @@ function stopReading() {
   playing = false;
   speechSynthesis.cancel();
   clearHighlights();
-  currentPage = 0;
-  renderPage(0);
+  if (pages.length) {
+    currentPage = 0;
+    renderPage(0);
+    // Save reset position
+    if (currentBookId) updateBookProgress(currentBookId, 0);
+  }
   document.getElementById('play-btn').innerHTML = '&#9654;';
   setStatus('Reset to beginning');
-  saveProgress();
 }
 
 function finishReading() {
   playing = false;
   clearHighlights();
   document.getElementById('play-btn').innerHTML = '&#9654;';
-  setStatus('\u2728 Finished! You reached the end of the book.');
-  clearSaved();
+  setStatus('\u2728 Finished! You reached the end of this book.');
+  updateBookProgress(currentBookId, 0);
+  saveLibraryIndex();
 }
 
 function seekTo(val) {
@@ -532,22 +696,16 @@ function seekTo(val) {
   if (was) { playing = true; document.getElementById('play-btn').innerHTML = '&#9646;&#9646;'; readPage(currentPage); }
 }
 
-function resetAll() {
-  stopReading();
-  pages = [];
-  wordEls = [];
-  document.getElementById('drop-zone').style.display = 'block';
-  document.getElementById('reader').style.display = 'none';
-  setStatus('');
-  loadSavedState();
+function saveProgress() {
+  if (!currentBookId) return;
+  updateBookProgress(currentBookId, currentPage);
+  showSaveNote('\uD83D\uDCBE Saved at page ' + (currentPage + 1));
 }
 
-// ── Voice setup ────────────────────────────────────────────────────────────
+// ── Voice ──────────────────────────────────────────────────────────────────
 function pickJenny() {
   var all = speechSynthesis.getVoices();
   if (!all.length) return;
-
-  // Priority order: Jenny online (neural) > Jenny > Aria online > Aria > any en-US
   var priority = ['Microsoft Jenny Online', 'Microsoft Jenny', 'Microsoft Aria Online', 'Microsoft Aria', 'Microsoft Guy Online', 'Microsoft Guy'];
   var found = null;
   for (var p = 0; p < priority.length; p++) {
@@ -556,22 +714,16 @@ function pickJenny() {
     }
     if (found) break;
   }
-
-  // Fallback: any English voice
-  if (!found) {
-    for (var i = 0; i < all.length; i++) {
-      if (all[i].lang.startsWith('en')) { found = all[i]; break; }
-    }
-  }
-
+  if (!found) for (var i = 0; i < all.length; i++) { if (all[i].lang.startsWith('en')) { found = all[i]; break; } }
   jennyVoice = found;
-  if (found) {
-    document.querySelector('.voice-pill').textContent = '\uD83C\uDF99\uFE0F ' + found.name;
-  }
+  if (found) document.getElementById('voice-pill').textContent = '\uD83C\uDF99\uFE0F ' + found.name;
 }
-
 speechSynthesis.onvoiceschanged = pickJenny;
-pickJenny();
+
+// ── Loading overlay ────────────────────────────────────────────────────────
+function showLoading(msg) { document.getElementById('loading-overlay').classList.add('visible'); setLoadingMsg(msg); }
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('visible'); }
+function setLoadingMsg(msg) { document.getElementById('loading-msg').textContent = msg; }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 var saveNoteTimer;
@@ -579,13 +731,9 @@ function showSaveNote(msg) {
   var el = document.getElementById('save-note');
   el.innerHTML = msg;
   clearTimeout(saveNoteTimer);
-  saveNoteTimer = setTimeout(function() { el.innerHTML = ''; }, 3000);
+  saveNoteTimer = setTimeout(function(){ el.innerHTML = ''; }, 3000);
 }
-
 function setStatus(msg) { document.getElementById('status').textContent = msg; }
-
-// Load any saved state on startup
-loadSavedState();
 </script>
 </body>
 </html>

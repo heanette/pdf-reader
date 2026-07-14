@@ -11,6 +11,8 @@
     --border: rgba(0,0,0,0.1); --text: #1A1814; --muted: #7A7468;
     --accent: #2D5016; --accent-light: #E8F0E0; --accent-mid: #4A7A28;
     --highlight: #FAC755; --highlight-bg: #FFF8E1;
+    --skip-color: #A09080; --skip-bg: #EEE8DF;
+    --mark-start: #E8F5E9; --mark-end: #FFEBEE;
     --radius: 14px; --radius-sm: 8px;
   }
   body { font-family: Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -18,7 +20,6 @@
   header { text-align: center; margin-bottom: 1.5rem; }
   h1 { font-family: Georgia, serif; font-size: 1.6rem; font-weight: normal; letter-spacing: -0.02em; }
   .tagline { font-size: 12px; color: var(--muted); margin-top: 3px; }
-
   #library-view, #reader-view { display: none; }
 
   /* Library */
@@ -26,25 +27,21 @@
   .lib-header h2 { font-size: 14px; font-weight: bold; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
   .add-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: white; border: none; border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: bold; cursor: pointer; }
   .add-btn:hover { background: var(--accent-mid); }
-
   #drop-zone { background: var(--surface); border: 1.5px dashed rgba(0,0,0,0.15); border-radius: var(--radius); padding: 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 16px; display: none; }
   #drop-zone.visible { display: block; }
   #drop-zone:hover { border-color: var(--accent-mid); background: var(--accent-light); }
   .drop-title { font-family: Georgia, serif; font-size: 1rem; margin-bottom: 4px; }
   .drop-sub { font-size: 12px; color: var(--muted); }
   #file-input { display: none; }
-
   .storage-bar-wrap { margin-bottom: 16px; }
   .storage-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
   .storage-track { background: var(--surface2); border-radius: 4px; height: 5px; overflow: hidden; }
-  .storage-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s; }
+  .storage-fill { height: 100%; border-radius: 4px; background: var(--accent); }
   .storage-fill.warn { background: #E65100; }
-
   .book-list { display: flex; flex-direction: column; gap: 10px; }
   .empty-state { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 3rem 2rem; text-align: center; color: var(--muted); }
   .empty-state .big { font-size: 36px; display: block; margin-bottom: 10px; }
   .empty-state p { font-size: 13px; }
-
   .book-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
   .book-card:hover { border-color: var(--accent-mid); box-shadow: 0 2px 8px rgba(45,80,22,0.1); }
   .book-card-icon { width: 44px; height: 56px; background: var(--accent-light); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
@@ -59,18 +56,121 @@
   .delete-btn { background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; padding: 2px 4px; }
   .delete-btn:hover { color: #C62828; }
 
-  /* Reader */
-  .reader-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  /* Reader topbar */
+  .reader-topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
   .back-btn { background: var(--surface2); border: none; border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; color: var(--muted); cursor: pointer; }
   .back-btn:hover { background: #ddd; }
-  #reader-book-title { font-size: 14px; font-weight: bold; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #reader-book-title { font-size: 14px; font-weight: bold; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   #reader-book-badge { font-size: 11px; color: var(--muted); background: var(--surface2); border-radius: 20px; padding: 3px 10px; white-space: nowrap; }
+  #sleep-badge { display: none; align-items: center; gap: 5px; background: #FFF3E0; border: 1px solid #FFB74D; border-radius: 20px; padding: 3px 10px; font-size: 11px; color: #E65100; white-space: nowrap; flex-shrink: 0; }
+  #sleep-badge.active { display: flex; }
+  #sleep-badge.warning { background: #FFEBEE; border-color: #EF9A9A; color: #C62828; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} }
 
-  #text-display { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; min-height: 200px; max-height: 300px; overflow-y: auto; font-family: Georgia, serif; font-size: 15px; line-height: 2; color: var(--text); margin-bottom: 12px; }
-  .word { display: inline; border-radius: 3px; padding: 1px 0; }
-  .word.active { background: var(--highlight); color: #2C2C2A; padding: 1px 3px; }
+  /* Mode bar — shown when in marking mode */
+  #mode-bar {
+    display: none; align-items: center; gap: 10px;
+    background: #FFF8E1; border: 1px solid #FFD54F;
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    margin-bottom: 10px; font-size: 13px; color: #5D4037;
+  }
+  #mode-bar.visible { display: flex; }
+  #mode-bar strong { flex: 1; }
+  .mode-cancel-btn { background: none; border: 1px solid #BCAAA4; border-radius: var(--radius-sm); padding: 5px 12px; font-size: 12px; color: #5D4037; cursor: pointer; }
+  .mode-cancel-btn:hover { background: #EFEBE9; }
+
+  /* Text display */
+  #text-display {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1.5rem; min-height: 200px; max-height: 340px; overflow-y: auto;
+    font-family: Georgia, serif; font-size: 15px; line-height: 2.1; color: var(--text);
+    margin-bottom: 12px;
+  }
+  .sentence {
+    display: inline; border-radius: 3px; padding: 2px 0;
+    transition: background 0.1s;
+  }
+  /* Normal sentence — clickable in marking mode */
+  .sentence.selectable { cursor: pointer; }
+  .sentence.selectable:hover { background: rgba(45,80,22,0.08); outline: 1px dashed var(--accent-mid); border-radius: 3px; }
+  /* Mark-start highlight */
+  .sentence.mark-start-hover { background: #C8E6C9 !important; outline: 2px solid #388E3C !important; border-radius: 3px; cursor: pointer; }
+  /* Mark-end highlight */
+  .sentence.mark-end-hover { background: #FFCDD2 !important; outline: 2px solid #C62828 !important; border-radius: 3px; cursor: pointer; }
+  /* Skipped by phrase */
+  .sentence.skipped-phrase {
+    color: var(--skip-color); font-size: 13px; font-style: italic;
+    background: var(--skip-bg); text-decoration: line-through;
+    border-radius: 3px; padding: 2px 4px; cursor: pointer;
+  }
+  .sentence.skipped-phrase:hover { background: #e4dbd0; }
+  /* Skipped by block */
+  .sentence.skipped-block {
+    color: var(--skip-color); font-size: 13px; font-style: italic;
+    background: var(--skip-bg); opacity: 0.6;
+    border-radius: 3px; padding: 2px 4px;
+    border-left: 3px solid #C5B8A8;
+  }
+  /* Block range markers */
+  .block-marker {
+    display: inline-block; font-size: 10px; font-weight: bold;
+    border-radius: 3px; padding: 1px 6px; margin: 0 3px; vertical-align: middle;
+    cursor: pointer; font-family: Arial, sans-serif;
+  }
+  .block-marker.start { background: #C8E6C9; color: #2E7D32; border: 1px solid #A5D6A7; }
+  .block-marker.end   { background: #FFCDD2; color: #C62828; border: 1px solid #EF9A9A; }
+  .block-marker:hover { opacity: 0.7; }
+
+  /* Word highlighting */
+  .word { display: inline; }
+  .word.active { background: var(--highlight); color: #2C2C2A; border-radius: 2px; padding: 1px 2px; }
   .word.spoken { background: var(--highlight-bg); }
 
+  /* Skip panel */
+  #skip-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+  .skip-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .skip-panel-title { font-size: 12px; font-weight: bold; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .skip-clear-btn { font-size: 11px; color: #C62828; background: none; border: 1px solid #EF9A9A; border-radius: 20px; padding: 3px 10px; cursor: pointer; }
+  .skip-clear-btn:hover { background: #FFEBEE; }
+
+  /* Two-column skip tools */
+  .skip-tools { display: flex; gap: 12px; flex-wrap: wrap; }
+  .skip-tool-col { flex: 1; min-width: 200px; }
+  .skip-tool-label { font-size: 11px; font-weight: bold; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 7px; }
+
+  /* Phrase input */
+  .phrase-input-row { display: flex; gap: 6px; }
+  #phrase-input { flex: 1; font-size: 13px; font-family: Arial, sans-serif; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; background: var(--surface2); color: var(--text); outline: none; min-width: 0; }
+  #phrase-input:focus { border-color: var(--accent); background: white; }
+  #phrase-input::placeholder { color: var(--muted); font-size: 12px; }
+  .phrase-add-btn { background: var(--accent); color: white; border: none; border-radius: var(--radius-sm); padding: 6px 12px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .phrase-add-btn:hover { background: var(--accent-mid); }
+
+  /* Block marking buttons */
+  .block-btn-row { display: flex; gap: 6px; flex-direction: column; }
+  .mark-start-btn, .mark-end-btn {
+    font-size: 12px; border-radius: var(--radius-sm); padding: 7px 12px; cursor: pointer;
+    border: none; font-family: Arial, sans-serif; text-align: left;
+  }
+  .mark-start-btn { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }
+  .mark-start-btn:hover { background: #C8E6C9; }
+  .mark-end-btn   { background: #FFEBEE; color: #C62828; border: 1px solid #EF9A9A; }
+  .mark-end-btn:hover { background: #FFCDD2; }
+  .mark-start-btn:disabled, .mark-end-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Rules list */
+  .rules-section { margin-top: 12px; }
+  .rules-section-title { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-weight: bold; }
+  .skip-rule-list { display: flex; flex-direction: column; gap: 5px; max-height: 120px; overflow-y: auto; }
+  .skip-rule-item { display: flex; align-items: center; gap: 8px; font-size: 12px; background: var(--surface2); border-radius: var(--radius-sm); padding: 5px 10px; }
+  .skip-rule-icon { font-size: 14px; flex-shrink: 0; }
+  .skip-rule-text { flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .skip-rule-count { font-size: 11px; color: var(--accent); font-weight: bold; white-space: nowrap; }
+  .skip-rule-del { background: none; border: none; color: #ccc; cursor: pointer; font-size: 16px; flex-shrink: 0; line-height: 1; }
+  .skip-rule-del:hover { color: #C62828; }
+  .skip-empty { font-size: 12px; color: var(--muted); font-style: italic; padding: 6px 0; }
+
+  /* Controls */
   .controls { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: 13px; margin-bottom: 10px; }
   .play-row { display: flex; align-items: center; gap: 12px; }
   #play-btn { width: 52px; height: 52px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 22px; color: white; transition: background 0.15s; }
@@ -87,16 +187,30 @@
   .setting-row input[type=range] { flex: 1; }
   .val { font-size: 12px; font-weight: bold; color: var(--accent); min-width: 36px; text-align: right; }
   .voice-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-light); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--accent); }
+  .sleep-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .sleep-row label { font-size: 12px; color: var(--muted); min-width: 44px; }
+  .sleep-btn { font-size: 12px; border-radius: 20px; padding: 4px 12px; cursor: pointer; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); transition: all 0.15s; }
+  .sleep-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .sleep-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  #sleep-cancel-btn { font-size: 12px; color: #C62828; background: none; border: 1px solid #EF9A9A; border-radius: 20px; padding: 4px 10px; cursor: pointer; display: none; }
+  #sleep-cancel-btn:hover { background: #FFEBEE; }
 
   #save-note { font-size: 11px; color: var(--muted); text-align: center; min-height: 16px; font-style: italic; }
   #status { font-size: 12px; color: var(--muted); text-align: center; min-height: 16px; }
+
+  #sleep-stopped { display: none; position: fixed; inset: 0; background: rgba(20,15,10,0.7); z-index: 200; align-items: center; justify-content: center; }
+  #sleep-stopped.visible { display: flex; }
+  .sleep-stopped-card { background: var(--surface); border-radius: var(--radius); padding: 2rem; text-align: center; max-width: 300px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .sleep-stopped-card .big { font-size: 40px; display: block; margin-bottom: 12px; }
+  .sleep-stopped-card h3 { font-family: Georgia, serif; font-size: 1.2rem; font-weight: normal; margin-bottom: 8px; }
+  .sleep-stopped-card p { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .sleep-ok-btn { background: var(--accent); color: white; border: none; border-radius: var(--radius-sm); padding: 10px 28px; font-size: 14px; cursor: pointer; }
 
   #loading-overlay { display: none; position: fixed; inset: 0; background: rgba(247,244,239,0.92); z-index: 100; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
   #loading-overlay.visible { display: flex; }
   .spinner { width: 36px; height: 36px; border: 3px solid var(--accent-light); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   #loading-msg { font-size: 13px; color: var(--muted); }
-
   footer { text-align: center; margin-top: 2rem; font-size: 11px; color: var(--muted); opacity: 0.5; }
 </style>
 </head>
@@ -107,9 +221,15 @@
     <p class="tagline">Your personal library &middot; free &middot; unlimited &middot; remembers your place in every book</p>
   </header>
 
-  <div id="loading-overlay">
-    <div class="spinner"></div>
-    <div id="loading-msg">Reading PDF&hellip;</div>
+  <div id="loading-overlay"><div class="spinner"></div><div id="loading-msg">Reading PDF&hellip;</div></div>
+
+  <div id="sleep-stopped">
+    <div class="sleep-stopped-card">
+      <span class="big">&#128564;</span>
+      <h3>Sleep timer ended</h3>
+      <p id="sleep-stopped-msg"></p>
+      <button class="sleep-ok-btn" onclick="dismissSleepStopped()">OK</button>
+    </div>
   </div>
 
   <!-- LIBRARY -->
@@ -120,7 +240,7 @@
     </div>
     <div id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="ondragover(event)" ondragleave="ondragleave(event)" ondrop="ondrop(event)">
       <p class="drop-title">&#128196; Drop a PDF here or click to browse</p>
-      <p class="drop-sub">The book will be saved to your library automatically</p>
+      <p class="drop-sub">Saved to your library automatically</p>
     </div>
     <input type="file" id="file-input" accept=".pdf,application/pdf" onchange="loadPDF(this.files[0])">
     <div class="storage-bar-wrap" id="storage-bar-wrap" style="display:none;">
@@ -136,8 +256,50 @@
       <button class="back-btn" onclick="goToLibrary()">&#8592; Library</button>
       <span id="reader-book-title"></span>
       <span id="reader-book-badge"></span>
+      <span id="sleep-badge">&#9679; <span id="sleep-countdown"></span></span>
     </div>
+
+    <!-- Mode bar — shown when marking -->
+    <div id="mode-bar">
+      <strong id="mode-bar-msg"></strong>
+      <button class="mode-cancel-btn" onclick="cancelMarkingMode()">&#215; Cancel</button>
+    </div>
+
     <div id="text-display"></div>
+
+    <!-- Skip panel -->
+    <div id="skip-panel">
+      <div class="skip-panel-header">
+        <span class="skip-panel-title">&#128683; Skip Rules</span>
+        <button class="skip-clear-btn" onclick="clearAllRules()">Clear all</button>
+      </div>
+
+      <div class="skip-tools">
+        <!-- Phrase skip -->
+        <div class="skip-tool-col">
+          <div class="skip-tool-label">&#128221; Skip by phrase</div>
+          <div class="phrase-input-row">
+            <input type="text" id="phrase-input" placeholder='e.g. "ibid" or "All Rights Reserved"'
+              onkeydown="if(event.key==='Enter') addPhraseFromInput()">
+            <button class="phrase-add-btn" onclick="addPhraseFromInput()">+ Add</button>
+          </div>
+        </div>
+        <!-- Block skip -->
+        <div class="skip-tool-col">
+          <div class="skip-tool-label">&#128203; Skip a block (start &rarr; end)</div>
+          <div class="block-btn-row">
+            <button class="mark-start-btn" id="mark-start-btn" onclick="enterMarkMode('start')">&#9654; Click to mark block START</button>
+            <button class="mark-end-btn"   id="mark-end-btn"   onclick="enterMarkMode('end')">&#9724; Click to mark block END</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rules list -->
+      <div class="rules-section">
+        <div class="skip-rule-list" id="skip-rule-list"></div>
+      </div>
+    </div>
+
     <div class="controls">
       <div class="play-row">
         <button id="play-btn" onclick="togglePlay()">&#9654;</button>
@@ -153,15 +315,26 @@
       </div>
       <div class="setting-row">
         <label>Speed</label>
-        <input type="range" id="rate-slider" min="0.5" max="2" step="0.05" value="0.95" oninput="document.getElementById('rate-val').textContent=parseFloat(this.value).toFixed(2)+'x'">
+        <input type="range" id="rate-slider" min="0.5" max="2" step="0.05" value="0.95"
+          oninput="document.getElementById('rate-val').textContent=parseFloat(this.value).toFixed(2)+'x'">
         <span class="val" id="rate-val">0.95x</span>
       </div>
       <div class="setting-row">
         <label>Pitch</label>
-        <input type="range" id="pitch-slider" min="0.5" max="1.5" step="0.1" value="1" oninput="document.getElementById('pitch-val').textContent=parseFloat(this.value).toFixed(1)">
+        <input type="range" id="pitch-slider" min="0.5" max="1.5" step="0.1" value="1"
+          oninput="document.getElementById('pitch-val').textContent=parseFloat(this.value).toFixed(1)">
         <span class="val" id="pitch-val">1.0</span>
       </div>
+      <div class="sleep-row">
+        <label>Sleep</label>
+        <button class="sleep-btn" data-mins="30"  onclick="setSleepTimer(30)">30 min</button>
+        <button class="sleep-btn" data-mins="60"  onclick="setSleepTimer(60)">60 min</button>
+        <button class="sleep-btn" data-mins="90"  onclick="setSleepTimer(90)">90 min</button>
+        <button class="sleep-btn" data-mins="120" onclick="setSleepTimer(120)">120 min</button>
+        <button id="sleep-cancel-btn" onclick="cancelSleepTimer()">&#215; Cancel</button>
+      </div>
     </div>
+
     <div id="save-note"></div>
     <div id="status"></div>
   </div>
@@ -171,364 +344,473 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ── Storage keys ───────────────────────────────────────────────────────────
-// INDEX key: stores array of {id, title, totalPages, currentPage, lastRead}
-// BOOK key:  stores pages (words[][]) for each book separately
-var IDX_KEY  = 'pdfLib_index';
-var BOOK_PFX = 'pdfLib_book_';
+var IDX_KEY='pdfLib_index', BOOK_PFX='pdfLib_book_', RULES_PFX='pdfLib_rules_';
+var library=[], activeBookId=null, pages=[], curPage=0;
+var playing=false, jennyVoice=null, wordEls=[], curWordIdx=0;
+var sleepInterval=null, sleepRemaining=0;
 
-// ── App state ──────────────────────────────────────────────────────────────
-var library      = [];   // loaded from localStorage on init
-var activeBookId = null; // which book is open in reader RIGHT NOW
-var pages        = [];   // words[][] for active book
-var curPage      = 0;    // current page index for active book
-var playing      = false;
-var jennyVoice   = null;
-var wordEls      = [];
-var curWordIdx   = 0;
+// Skip rules storage:
+// phraseRules: [{phrase, count}]
+// blockRules:  [{startSig, endSig, startPreview, endPreview, pageHint}]
+//   A block rule skips all sentences between startSig and endSig on any page
+var phraseRules=[], blockRules=[];
 
-// ── Boot ───────────────────────────────────────────────────────────────────
-window.onload = function() {
-  library = readIndex();
-  pickJenny();
-  showLibraryView();
-};
+// Marking mode state
+var markMode=null;       // 'start' | 'end' | null
+var pendingStart=null;   // {sig, preview, pageIdx, sentIdx}
 
-// ── Index helpers ──────────────────────────────────────────────────────────
-function readIndex() {
-  try { return JSON.parse(localStorage.getItem(IDX_KEY)) || []; } catch(e) { return []; }
+window.onload=function(){ library=readIndex(); pickJenny(); showLibraryView(); };
+
+// ── Storage ────────────────────────────────────────────────────────────────
+function readIndex(){ try{ return JSON.parse(localStorage.getItem(IDX_KEY))||[]; }catch(e){ return []; } }
+function writeIndex(){ localStorage.setItem(IDX_KEY,JSON.stringify(library)); }
+function persistProgress(id,pg){
+  var b=library.find(function(x){ return x.id===id; }); if(!b) return;
+  b.currentPage=pg; b.lastRead=new Date().toLocaleString(); writeIndex();
+}
+function readBookData(id){
+  try{
+    var raw=JSON.parse(localStorage.getItem(BOOK_PFX+id)); if(!raw) return null;
+    return raw.map(function(page){
+      if(!Array.isArray(page)) return splitSentences(String(page));
+      if(!page.length) return [];
+      var f=page[0];
+      if(typeof f==='object'&&f!==null&&'text' in f) return page.map(function(c){ return String(c.text||''); }).filter(Boolean);
+      if(typeof f==='string'){ var avg=page.reduce(function(s,w){ return s+w.length; },0)/page.length; return avg<15?splitSentences(page.join(' ')):page; }
+      if(Array.isArray(f)) return page.map(function(a){ return Array.isArray(a)?a.join(' '):String(a); }).filter(Boolean);
+      return [page.map(String).join(' ')];
+    });
+  }catch(e){ return null; }
+}
+function writeBookData(id,data){ try{ localStorage.setItem(BOOK_PFX+id,JSON.stringify(data)); return true; }catch(e){ return false; } }
+function removeBook(id){ localStorage.removeItem(BOOK_PFX+id); localStorage.removeItem(RULES_PFX+id); library=library.filter(function(b){ return b.id!==id; }); writeIndex(); renderLibrary(); updateStorageBar(); }
+
+function readAllRules(id){
+  try{ var r=JSON.parse(localStorage.getItem(RULES_PFX+id))||{}; return { phrase: r.phrase||[], block: r.block||[] }; }catch(e){ return {phrase:[],block:[]}; }
+}
+function writeAllRules(id){ localStorage.setItem(RULES_PFX+id,JSON.stringify({phrase:phraseRules,block:blockRules})); }
+
+// ── Sentence splitting ─────────────────────────────────────────────────────
+function splitSentences(text){
+  var parts=text.split(/(?<=[.!?])\s{2,}(?=[A-Z])|(?<=[.!?])\s+(?=[A-Z][a-z])/);
+  var result=[];
+  parts.forEach(function(p){ p=p.trim(); if(!p) return; if(p.length>400){ p.split(/(?<=[.!?])\s+/).forEach(function(s){ s=s.trim(); if(s) result.push(s); }); }else result.push(p); });
+  return result.length?result:[text.trim()];
 }
 
-function writeIndex() {
-  localStorage.setItem(IDX_KEY, JSON.stringify(library));
+// ── Sentence signature (for block rules) ──────────────────────────────────
+function sig(text){ return text.trim().toLowerCase().replace(/\s+/g,' ').slice(0,100); }
+
+// ── Phrase rules ───────────────────────────────────────────────────────────
+function isPhraseSKipped(text){
+  if(!phraseRules.length) return false;
+  var tl=text.toLowerCase();
+  return phraseRules.some(function(r){ return tl.indexOf(r.phrase.toLowerCase())!==-1; });
+}
+function addPhrase(phrase){
+  phrase=phrase.trim(); if(!phrase) return false;
+  var pl=phrase.toLowerCase();
+  if(phraseRules.some(function(r){ return r.phrase.toLowerCase()===pl; })) return false;
+  var count=0;
+  pages.forEach(function(pg){ pg.forEach(function(s){ if(s.toLowerCase().indexOf(pl)!==-1) count++; }); });
+  phraseRules.push({phrase:phrase,count:count});
+  writeAllRules(activeBookId); renderRules(); renderPage(curPage); return true;
+}
+function addPhraseFromInput(){
+  var input=document.getElementById('phrase-input'), val=input.value.trim();
+  if(!val) return;
+  if(addPhrase(val)) input.value='';
+  else{ input.style.borderColor='#E65100'; setTimeout(function(){ input.style.borderColor=''; },1000); }
+}
+function removePhraseRule(phrase){
+  phraseRules=phraseRules.filter(function(r){ return r.phrase!==phrase; });
+  writeAllRules(activeBookId); renderRules(); renderPage(curPage);
 }
 
-// The ONE function that saves progress for a book.
-// It updates both the in-memory library array AND writes to localStorage immediately.
-function persistProgress(bookId, pageIdx) {
-  var book = library.find(function(b){ return b.id === bookId; });
-  if (!book) return;
-  book.currentPage = pageIdx;
-  book.lastRead    = new Date().toLocaleString();
-  writeIndex();  // flush to localStorage right away
+// ── Block rules ────────────────────────────────────────────────────────────
+// A block rule skips sentences from startSig to endSig (inclusive) wherever they appear on any page
+function isBlockSkipped(text, pageIdx, sentIdx, pageSentences){
+  if(!blockRules.length) return false;
+  var s=sig(text);
+  // Check if any block rule covers this sentence
+  for(var r=0;r<blockRules.length;r++){
+    var rule=blockRules[r];
+    // Find start and end positions on this page
+    var startIdx=-1, endIdx=-1;
+    for(var i=0;i<pageSentences.length;i++){
+      if(sig(pageSentences[i])===rule.startSig) startIdx=i;
+      if(sig(pageSentences[i])===rule.endSig)   endIdx=i;
+    }
+    if(startIdx!==-1 && endIdx!==-1 && sentIdx>=startIdx && sentIdx<=endIdx) return true;
+    // If only start found (end not on this page), skip from start to end of page
+    if(startIdx!==-1 && endIdx===-1 && sentIdx>=startIdx) return true;
+    // If only end found (start not on this page), skip from beginning to end
+    if(startIdx===-1 && endIdx!==-1 && sentIdx<=endIdx) return true;
+  }
+  return false;
 }
 
-// ── Book data ──────────────────────────────────────────────────────────────
-function readBookData(id) {
-  try { return JSON.parse(localStorage.getItem(BOOK_PFX + id)) || null; } catch(e) { return null; }
+function addBlockRule(startInfo, endInfo){
+  blockRules.push({
+    startSig: startInfo.s,
+    endSig:   endInfo.s,
+    startPreview: startInfo.preview,
+    endPreview:   endInfo.preview
+  });
+  writeAllRules(activeBookId); renderRules(); renderPage(curPage);
 }
 
-function writeBookData(id, wordPages) {
-  try { localStorage.setItem(BOOK_PFX + id, JSON.stringify(wordPages)); return true; }
-  catch(e) { return false; }
+function removeBlockRule(idx){
+  blockRules.splice(idx,1);
+  writeAllRules(activeBookId); renderRules(); renderPage(curPage);
 }
 
-function removeBook(id) {
-  localStorage.removeItem(BOOK_PFX + id);
-  library = library.filter(function(b){ return b.id !== id; });
-  writeIndex();
-  renderLibrary();
-  updateStorageBar();
+function clearAllRules(){
+  phraseRules=[]; blockRules=[]; cancelMarkingMode();
+  writeAllRules(activeBookId); renderRules(); renderPage(curPage);
+}
+
+// ── Marking mode ───────────────────────────────────────────────────────────
+function enterMarkMode(type){
+  cancelMarkingMode();
+  markMode=type;
+  var bar=document.getElementById('mode-bar');
+  bar.classList.add('visible');
+  if(type==='start'){
+    document.getElementById('mode-bar-msg').textContent='Click the FIRST sentence of the block you want to skip';
+    document.getElementById('mark-start-btn').disabled=true;
+  } else {
+    if(!pendingStart){ alert('Please mark the START first.'); cancelMarkingMode(); return; }
+    document.getElementById('mode-bar-msg').textContent='Now click the LAST sentence of the block to skip';
+    document.getElementById('mark-end-btn').disabled=true;
+  }
+  renderPage(curPage);
+}
+
+function cancelMarkingMode(){
+  markMode=null;
+  document.getElementById('mode-bar').classList.remove('visible');
+  document.getElementById('mark-start-btn').disabled=false;
+  document.getElementById('mark-end-btn').disabled=false;
+  renderPage(curPage);
+}
+
+function handleSentenceClick(text, pageIdx, sentIdx){
+  if(!markMode) return;
+  var s=sig(text), preview=text.slice(0,50);
+  if(markMode==='start'){
+    pendingStart={s:s, preview:preview, pageIdx:pageIdx, sentIdx:sentIdx};
+    markMode=null;
+    document.getElementById('mode-bar').classList.remove('visible');
+    document.getElementById('mark-start-btn').disabled=false;
+    // Automatically prompt for end
+    document.getElementById('mode-bar-msg').textContent='START marked \u2714 Now click LAST sentence of the block';
+    document.getElementById('mode-bar').classList.add('visible');
+    document.getElementById('mark-end-btn').disabled=false;
+    markMode='end';
+    renderPage(curPage);
+  } else if(markMode==='end'){
+    if(!pendingStart){ cancelMarkingMode(); return; }
+    addBlockRule(pendingStart, {s:s, preview:preview});
+    pendingStart=null;
+    cancelMarkingMode();
+    setStatus('Block skip rule added \u2714');
+  }
+}
+
+// ── Render rules panel ─────────────────────────────────────────────────────
+function renderRules(){
+  var list=document.getElementById('skip-rule-list');
+  list.innerHTML='';
+  if(!phraseRules.length && !blockRules.length){
+    list.innerHTML='<div class="skip-empty">No skip rules yet. Use the tools above to add some.</div>';
+    return;
+  }
+  phraseRules.forEach(function(rule){
+    var item=document.createElement('div'); item.className='skip-rule-item';
+    item.innerHTML='<span class="skip-rule-icon">&#128221;</span>'+
+      '<span class="skip-rule-text" title="'+esc(rule.phrase)+'">'+esc(rule.phrase)+'</span>'+
+      '<span class="skip-rule-count">'+rule.count+' lines</span>'+
+      '<button class="skip-rule-del">&#215;</button>';
+    item.querySelector('.skip-rule-del').onclick=function(){ removePhraseRule(rule.phrase); };
+    list.appendChild(item);
+  });
+  blockRules.forEach(function(rule,idx){
+    var item=document.createElement('div'); item.className='skip-rule-item';
+    item.innerHTML='<span class="skip-rule-icon">&#128203;</span>'+
+      '<span class="skip-rule-text" title="From: '+esc(rule.startPreview)+' \u2192 To: '+esc(rule.endPreview)+'">'+
+        'Block: \u201c'+esc(rule.startPreview.slice(0,25))+'\u2026\u201d \u2192 \u201c'+esc(rule.endPreview.slice(0,25))+'\u2026\u201d'+
+      '</span>'+
+      '<button class="skip-rule-del">&#215;</button>';
+    item.querySelector('.skip-rule-del').onclick=function(){ removeBlockRule(idx); };
+    list.appendChild(item);
+  });
 }
 
 // ── Views ──────────────────────────────────────────────────────────────────
-function showLibraryView() {
-  document.getElementById('library-view').style.display = 'block';
-  document.getElementById('reader-view').style.display  = 'none';
-  renderLibrary();
-  updateStorageBar();
+function showLibraryView(){ document.getElementById('library-view').style.display='block'; document.getElementById('reader-view').style.display='none'; renderLibrary(); updateStorageBar(); }
+
+function showReaderView(bookId){
+  playing=false; speechSynthesis.cancel(); clearHighlights();
+  document.getElementById('play-btn').innerHTML='&#9654;';
+  var bookData=readBookData(bookId);
+  if(!bookData){ alert('Book data missing \u2014 please remove and re-add.'); return; }
+  var bookMeta=library.find(function(b){ return b.id===bookId; }); if(!bookMeta) return;
+  activeBookId=bookId; pages=bookData; curPage=bookMeta.currentPage||0;
+  var rules=readAllRules(bookId); phraseRules=rules.phrase; blockRules=rules.block;
+  document.getElementById('library-view').style.display='none';
+  document.getElementById('reader-view').style.display='block';
+  document.getElementById('reader-book-title').textContent=bookMeta.title;
+  document.getElementById('reader-book-badge').textContent=pages.length+' pages';
+  document.getElementById('tot-pages').textContent='of '+pages.length;
+  var prog=document.getElementById('progress'); prog.max=pages.length-1; prog.value=curPage;
+  renderRules(); renderPage(curPage);
+  setStatus('Page '+(curPage+1)+' of '+pages.length+' \u2014 press play to continue');
 }
 
-function showReaderView(bookId) {
-  // Stop any current speech first, WITHOUT touching curPage
-  playing = false;
-  speechSynthesis.cancel();
-  clearHighlights();
-  document.getElementById('play-btn').innerHTML = '&#9654;';
-
-  // Load the book data
-  var bookData = readBookData(bookId);
-  if (!bookData) { alert('Book data missing — please remove and re-add this book.'); return; }
-
-  // Read saved page position fresh from library (not from stale global)
-  var bookMeta = library.find(function(b){ return b.id === bookId; });
-  if (!bookMeta) return;
-
-  // Set globals for this book
-  activeBookId = bookId;
-  pages        = bookData;
-  curPage      = bookMeta.currentPage || 0;  // ← always from localStorage, never stale
-
-  // Update UI
-  document.getElementById('library-view').style.display = 'none';
-  document.getElementById('reader-view').style.display  = 'block';
-  document.getElementById('reader-book-title').textContent = bookMeta.title;
-  document.getElementById('reader-book-badge').textContent = pages.length + ' pages';
-  document.getElementById('tot-pages').textContent         = 'of ' + pages.length;
-  var prog = document.getElementById('progress');
-  prog.max   = pages.length - 1;
-  prog.value = curPage;
-
-  renderPage(curPage);
-  setStatus('Page ' + (curPage + 1) + ' of ' + pages.length + ' \u2014 press play to continue');
-}
-
-function goToLibrary() {
-  // Save current position to localStorage BEFORE leaving
-  if (activeBookId !== null) {
-    persistProgress(activeBookId, curPage);
-    showSaveNote('\uD83D\uDCBE Progress saved');
-  }
-  // Stop speech
-  playing = false;
-  speechSynthesis.cancel();
-  clearHighlights();
-  document.getElementById('play-btn').innerHTML = '&#9654;';
-  // Reset globals so nothing bleeds into next book
-  activeBookId = null;
-  pages        = [];
-  curPage      = 0;
-  wordEls      = [];
-
+function goToLibrary(){
+  if(activeBookId){ persistProgress(activeBookId,curPage); showSaveNote('\uD83D\uDCBE Progress saved'); }
+  playing=false; speechSynthesis.cancel(); clearHighlights();
+  document.getElementById('play-btn').innerHTML='&#9654;';
+  cancelMarkingMode(); cancelSleepTimer();
+  activeBookId=null; pages=[]; curPage=0; wordEls=[]; phraseRules=[]; blockRules=[];
   showLibraryView();
 }
 
 // ── Library rendering ──────────────────────────────────────────────────────
-function renderLibrary() {
-  var list = document.getElementById('book-list');
-  list.innerHTML = '';
-  if (!library.length) {
-    list.innerHTML = '<div class="empty-state"><span class="big">&#128218;</span><p>No books yet &mdash; click <strong>Add Book</strong> to get started</p></div>';
-    return;
-  }
-  library.forEach(function(book) {
-    var pct = book.totalPages > 0 ? Math.round(book.currentPage / book.totalPages * 100) : 0;
-    var card = document.createElement('div');
-    card.className = 'book-card';
-    card.innerHTML =
-      '<div class="book-card-icon">&#128218;</div>' +
-      '<div class="book-card-info">' +
-        '<div class="book-card-title">' + esc(book.title) + '</div>' +
-        '<div class="book-card-meta">Page ' + (book.currentPage + 1) + ' of ' + book.totalPages +
-          (book.lastRead ? ' &middot; ' + book.lastRead : '') + '</div>' +
-        '<div class="book-progress-track"><div class="book-progress-fill" style="width:' + pct + '%"></div></div>' +
-      '</div>' +
-      '<div class="book-card-actions">' +
-        '<button class="open-btn">&#9654; Open</button>' +
-        '<button class="delete-btn">&#128465; Remove</button>' +
+function renderLibrary(){
+  var list=document.getElementById('book-list'); list.innerHTML='';
+  if(!library.length){ list.innerHTML='<div class="empty-state"><span class="big">&#128218;</span><p>No books yet \u2014 click <strong>Add Book</strong> to get started</p></div>'; return; }
+  library.forEach(function(book){
+    var pct=book.totalPages>0?Math.round(book.currentPage/book.totalPages*100):0;
+    var card=document.createElement('div'); card.className='book-card';
+    card.innerHTML='<div class="book-card-icon">&#128218;</div>'+
+      '<div class="book-card-info">'+
+        '<div class="book-card-title">'+esc(book.title)+'</div>'+
+        '<div class="book-card-meta">Page '+(book.currentPage+1)+' of '+book.totalPages+(book.lastRead?' &middot; '+book.lastRead:'')+'</div>'+
+        '<div class="book-progress-track"><div class="book-progress-fill" style="width:'+pct+'%"></div></div>'+
+      '</div>'+
+      '<div class="book-card-actions">'+
+        '<button class="open-btn">&#9654; Open</button>'+
+        '<button class="delete-btn">&#128465; Remove</button>'+
       '</div>';
-    card.querySelector('.open-btn').onclick   = function(e){ e.stopPropagation(); showReaderView(book.id); };
-    card.querySelector('.delete-btn').onclick = function(e){ e.stopPropagation(); if(confirm('Remove "'+book.title+'"?')) removeBook(book.id); };
-    card.onclick = function(){ showReaderView(book.id); };
+    card.querySelector('.open-btn').onclick=function(e){ e.stopPropagation(); showReaderView(book.id); };
+    card.querySelector('.delete-btn').onclick=function(e){ e.stopPropagation(); if(confirm('Remove "'+book.title+'"?')) removeBook(book.id); };
+    card.onclick=function(){ showReaderView(book.id); };
     list.appendChild(card);
   });
 }
 
-function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ── Storage bar ────────────────────────────────────────────────────────────
-function updateStorageBar() {
-  if (!library.length) { document.getElementById('storage-bar-wrap').style.display='none'; return; }
-  var used = 0;
-  try { for(var k in localStorage){ if(localStorage.hasOwnProperty(k)) used += (localStorage[k].length + k.length)*2; } } catch(e){}
-  var pct = Math.min(100, Math.round(used / (5*1024*1024) * 100));
-  document.getElementById('storage-bar-wrap').style.display = 'block';
-  document.getElementById('storage-fill').style.width = pct + '%';
-  document.getElementById('storage-fill').className   = 'storage-fill' + (pct > 75 ? ' warn' : '');
-  document.getElementById('storage-label-val').textContent = pct + '% of ~5MB used';
+function updateStorageBar(){
+  if(!library.length){ document.getElementById('storage-bar-wrap').style.display='none'; return; }
+  var used=0; try{ for(var k in localStorage){ if(localStorage.hasOwnProperty(k)) used+=(localStorage[k].length+k.length)*2; } }catch(e){}
+  var pct=Math.min(100,Math.round(used/(5*1024*1024)*100));
+  document.getElementById('storage-bar-wrap').style.display='block';
+  document.getElementById('storage-fill').style.width=pct+'%';
+  document.getElementById('storage-fill').className='storage-fill'+(pct>75?' warn':'');
+  document.getElementById('storage-label-val').textContent=pct+'% of ~5MB used';
 }
 
 // ── Drop zone ──────────────────────────────────────────────────────────────
-var dzOpen = false;
-function toggleDropZone() {
-  dzOpen = !dzOpen;
-  document.getElementById('drop-zone').classList.toggle('visible', dzOpen);
-}
+var dzOpen=false;
+function toggleDropZone(){ dzOpen=!dzOpen; document.getElementById('drop-zone').classList.toggle('visible',dzOpen); }
 function ondragover(e){ e.preventDefault(); document.getElementById('drop-zone').style.borderColor='#4A7A28'; }
 function ondragleave(e){ document.getElementById('drop-zone').style.borderColor=''; }
 function ondrop(e){ e.preventDefault(); document.getElementById('drop-zone').style.borderColor=''; var f=e.dataTransfer.files[0]; if(f) loadPDF(f); }
 
 // ── PDF load ───────────────────────────────────────────────────────────────
-function loadPDF(file) {
-  if (!file) return;
-  showLoading('Reading PDF\u2026');
-  var fr = new FileReader();
-  fr.onload = function(e) {
-    pdfjsLib.getDocument({ data: e.target.result }).promise.then(function(pdf) {
-      var total = pdf.numPages, fetched = 0, texts = new Array(total);
-      function fetchPage(i) {
-        pdf.getPage(i).then(function(p) {
-          p.getTextContent().then(function(c) {
-            texts[i-1] = c.items.map(function(it){ return it.str; }).join(' ').replace(/\s+/g,' ').trim();
-            fetched++;
-            setLoadingMsg('Loading\u2026 ' + fetched + '/' + total);
-            if (fetched === total) {
-              var wordPages = texts
-                .filter(function(t){ return t && t.length > 10; })
-                .map(function(t){ return t.split(/\s+/).filter(function(w){ return w.length > 0; }); });
-              if (!wordPages.length) { hideLoading(); alert('No readable text found.'); return; }
-              var id = 'book_' + Date.now();
-              var title = file.name.replace(/\.pdf$/i,'');
-              if (!writeBookData(id, wordPages)) { hideLoading(); alert('Not enough storage. Remove a book first.'); return; }
-              library.push({ id:id, title:title, totalPages:wordPages.length, currentPage:0, lastRead:null });
-              writeIndex();
-              hideLoading();
-              document.getElementById('drop-zone').classList.remove('visible');
-              dzOpen = false;
-              document.getElementById('file-input').value = '';
-              updateStorageBar();
-              showReaderView(id);
+function loadPDF(file){
+  if(!file) return; showLoading('Reading PDF\u2026');
+  var fr=new FileReader();
+  fr.onload=function(e){
+    pdfjsLib.getDocument({data:e.target.result}).promise.then(function(pdf){
+      var total=pdf.numPages,fetched=0,texts=new Array(total);
+      function fetchPage(i){
+        pdf.getPage(i).then(function(p){
+          p.getTextContent().then(function(c){
+            texts[i-1]=c.items.map(function(it){ return it.str; }).join(' ').replace(/\s+/g,' ').trim();
+            fetched++; setLoadingMsg('Processing\u2026 '+fetched+'/'+total);
+            if(fetched===total){
+              var sp=texts.filter(function(t){ return t&&t.length>10; }).map(function(t){ return splitSentences(t); });
+              if(!sp.length){ hideLoading(); alert('No readable text found.'); return; }
+              var id='book_'+Date.now(), title=file.name.replace(/\.pdf$/i,'');
+              if(!writeBookData(id,sp)){ hideLoading(); alert('Not enough storage. Remove a book first.'); return; }
+              library.push({id:id,title:title,totalPages:sp.length,currentPage:0,lastRead:null});
+              writeIndex(); hideLoading();
+              document.getElementById('drop-zone').classList.remove('visible'); dzOpen=false;
+              document.getElementById('file-input').value='';
+              updateStorageBar(); showReaderView(id);
             }
           });
         });
       }
-      for (var i=1; i<=total; i++) fetchPage(i);
+      for(var i=1;i<=total;i++) fetchPage(i);
     }).catch(function(err){ hideLoading(); alert('Could not read PDF: '+err.message); });
   };
   fr.readAsArrayBuffer(file);
 }
 
 // ── Page render ────────────────────────────────────────────────────────────
-function renderPage(idx) {
-  var box = document.getElementById('text-display');
-  box.innerHTML = '';
-  wordEls = []; curWordIdx = 0;
-  if (!pages[idx]) return;
-  var frag = document.createDocumentFragment();
-  pages[idx].forEach(function(w) {
-    var s = document.createElement('span');
-    s.className = 'word'; s.textContent = w;
-    frag.appendChild(s); frag.appendChild(document.createTextNode(' '));
-    wordEls.push(s);
+function renderPage(idx){
+  var box=document.getElementById('text-display');
+  box.innerHTML=''; wordEls=[]; curWordIdx=0;
+  if(!pages[idx]) return;
+  var sents=pages[idx];
+  var frag=document.createDocumentFragment();
+
+  sents.forEach(function(sent,si){
+    if(!sent.trim()) return;
+    var phraseSkip=isPhraseSKipped(sent);
+    var blockSkip=isBlockSkipped(sent,idx,si,sents);
+    var skipped=phraseSkip||blockSkip;
+
+    var span=document.createElement('span');
+    if(skipped){
+      span.className='sentence '+(blockSkip?'skipped-block':'skipped-phrase');
+      span.textContent=sent;
+      span.title='Skipped \u2014 click to remove this rule';
+      if(phraseSkip){
+        span.onclick=function(){
+          var tl=sent.toLowerCase();
+          var r=phraseRules.find(function(r){ return tl.indexOf(r.phrase.toLowerCase())!==-1; });
+          if(r) removePhraseRule(r.phrase);
+        };
+      }
+    } else {
+      span.className='sentence'+(markMode?' selectable':'');
+      if(markMode){
+        span.onmouseenter=function(){ this.classList.add(markMode==='start'?'mark-start-hover':'mark-end-hover'); };
+        span.onmouseleave=function(){ this.classList.remove('mark-start-hover','mark-end-hover'); };
+        span.onclick=function(){ handleSentenceClick(sent,idx,si); };
+        span.title=markMode==='start'?'Click to mark as block START':'Click to mark as block END';
+      }
+      // Render words for TTS highlighting
+      sent.split(/\s+/).forEach(function(w){
+        if(!w) return;
+        var ws=document.createElement('span'); ws.className='word'; ws.textContent=w;
+        span.appendChild(ws); span.appendChild(document.createTextNode(' '));
+        wordEls.push(ws);
+      });
+    }
+
+    frag.appendChild(span);
+    frag.appendChild(document.createTextNode(' '));
   });
-  box.appendChild(frag); box.scrollTop = 0;
-  document.getElementById('cur-page').textContent = 'Page ' + (idx+1);
-  document.getElementById('progress').value = idx;
+
+  box.appendChild(frag);
+  box.scrollTop=0;
+  document.getElementById('cur-page').textContent='Page '+(idx+1);
+  document.getElementById('progress').value=idx;
 }
 
-function highlightWord(idx) {
-  if (wordEls[curWordIdx]) { wordEls[curWordIdx].classList.remove('active'); wordEls[curWordIdx].classList.add('spoken'); }
-  curWordIdx = idx;
-  var el = wordEls[idx]; if (!el) return;
+function highlightWord(idx){
+  if(wordEls[curWordIdx]){ wordEls[curWordIdx].classList.remove('active'); wordEls[curWordIdx].classList.add('spoken'); }
+  curWordIdx=idx;
+  var el=wordEls[idx]; if(!el) return;
   el.classList.remove('spoken'); el.classList.add('active');
-  var box = document.getElementById('text-display');
-  var top = el.offsetTop, bot = top + el.offsetHeight;
-  if (top < box.scrollTop + 40) box.scrollTop = top - 40;
-  else if (bot > box.scrollTop + box.clientHeight - 40) box.scrollTop = bot - box.clientHeight + 40;
+  var box=document.getElementById('text-display');
+  var top=el.offsetTop,bot=top+el.offsetHeight;
+  if(top<box.scrollTop+40) box.scrollTop=top-40;
+  else if(bot>box.scrollTop+box.clientHeight-40) box.scrollTop=bot-box.clientHeight+40;
 }
-
-function clearHighlights() { wordEls.forEach(function(el){ el.classList.remove('active','spoken'); }); curWordIdx = 0; }
+function clearHighlights(){ wordEls.forEach(function(el){ el.classList.remove('active','spoken'); }); curWordIdx=0; }
 
 // ── Speech ─────────────────────────────────────────────────────────────────
-function togglePlay() { if (!pages.length) return; playing ? pause() : play(); }
+function togglePlay(){ if(!pages.length) return; playing?pause():play(); }
+function play(){ playing=true; document.getElementById('play-btn').innerHTML='&#9646;&#9646;'; speak(curPage); }
 
-function play() {
-  playing = true;
-  document.getElementById('play-btn').innerHTML = '&#9646;&#9646;';
-  speak(curPage);
-}
-
-function speak(idx) {
-  if (!playing || idx >= pages.length) { done(); return; }
-  curPage = idx;
-  renderPage(idx);
-  setStatus('Reading page ' + (idx+1) + ' of ' + pages.length + '\u2026');
-
-  var utt = new SpeechSynthesisUtterance(pages[idx].join(' '));
-  utt.voice = jennyVoice;
-  utt.rate  = parseFloat(document.getElementById('rate-slider').value);
-  utt.pitch = parseFloat(document.getElementById('pitch-slider').value);
-  utt.lang  = 'en-US';
-
-  utt.onboundary = function(e) {
-    if (e.name !== 'word') return;
-    var cc = 0;
-    for (var i = 0; i < pages[idx].length; i++) {
-      if (cc >= e.charIndex) { highlightWord(i); break; }
-      cc += pages[idx][i].length + 1;
-    }
+function speak(idx){
+  if(!playing||idx>=pages.length){ done(); return; }
+  curPage=idx; renderPage(idx);
+  setStatus('Reading page '+(idx+1)+' of '+pages.length+'\u2026');
+  var sents=pages[idx];
+  var text=sents.filter(function(s,si){ return !isPhraseSKipped(s)&&!isBlockSkipped(s,idx,si,sents); }).join(' ').trim();
+  if(!text){ if(playing){ curPage=idx+1; persistProgress(activeBookId,curPage); speak(curPage); } return; }
+  var utt=new SpeechSynthesisUtterance(text);
+  utt.voice=jennyVoice; utt.rate=parseFloat(document.getElementById('rate-slider').value);
+  utt.pitch=parseFloat(document.getElementById('pitch-slider').value); utt.lang='en-US';
+  var rw=text.split(/\s+/).filter(function(w){ return w.length>0; });
+  utt.onboundary=function(e){
+    if(e.name!=='word') return;
+    var cc=0; for(var i=0;i<rw.length;i++){ if(cc>=e.charIndex){ highlightWord(i); break; } cc+=rw[i].length+1; }
   };
-
-  utt.onend = function() {
-    if (!playing) return;
-    curPage = idx + 1;
-    // Save progress every page automatically
-    persistProgress(activeBookId, curPage);
-    speak(curPage);
-  };
-
-  utt.onerror = function(e) {
-    if (e.error !== 'interrupted' && e.error !== 'canceled') setStatus('Speech error: ' + e.error);
-  };
-
-  speechSynthesis.cancel();
-  speechSynthesis.speak(utt);
+  utt.onend=function(){ if(!playing) return; curPage=idx+1; persistProgress(activeBookId,curPage); speak(curPage); };
+  utt.onerror=function(e){ if(e.error!=='interrupted'&&e.error!=='canceled') setStatus('Speech error: '+e.error); };
+  speechSynthesis.cancel(); speechSynthesis.speak(utt);
 }
 
-function pause() {
-  playing = false;
-  speechSynthesis.cancel();
-  clearHighlights();
-  document.getElementById('play-btn').innerHTML = '&#9654;';
-  // Save progress on pause
-  persistProgress(activeBookId, curPage);
-  showSaveNote('\uD83D\uDCBE Saved at page ' + (curPage+1));
-  setStatus('Paused at page ' + (curPage+1) + ' \u2014 press play to continue');
+function pause(){
+  playing=false; speechSynthesis.cancel(); clearHighlights();
+  document.getElementById('play-btn').innerHTML='&#9654;';
+  persistProgress(activeBookId,curPage);
+  showSaveNote('\uD83D\uDCBE Saved at page '+(curPage+1));
+  setStatus('Paused at page '+(curPage+1)+' \u2014 press play to continue');
 }
-
-function resetToBeginning() {
-  playing = false;
-  speechSynthesis.cancel();
-  clearHighlights();
-  curPage = 0;
-  renderPage(0);
-  persistProgress(activeBookId, 0);
-  document.getElementById('play-btn').innerHTML = '&#9654;';
-  setStatus('Reset to beginning');
+function resetToBeginning(){
+  playing=false; speechSynthesis.cancel(); clearHighlights();
+  curPage=0; renderPage(0); persistProgress(activeBookId,0);
+  document.getElementById('play-btn').innerHTML='&#9654;'; setStatus('Reset to beginning');
 }
-
-function done() {
-  playing = false;
-  clearHighlights();
-  document.getElementById('play-btn').innerHTML = '&#9654;';
-  persistProgress(activeBookId, 0); // reset to start when book finished
+function done(){
+  playing=false; clearHighlights(); document.getElementById('play-btn').innerHTML='&#9654;';
+  persistProgress(activeBookId,0); cancelSleepTimer();
   setStatus('\u2728 Finished! You reached the end of this book.');
 }
-
-function seekTo(val) {
-  var was = playing;
-  if (playing) { playing = false; speechSynthesis.cancel(); clearHighlights(); }
-  curPage = parseInt(val);
-  renderPage(curPage);
-  persistProgress(activeBookId, curPage);
-  showSaveNote('\uD83D\uDCBE Saved at page ' + (curPage+1));
-  if (was) { playing = true; document.getElementById('play-btn').innerHTML = '&#9646;&#9646;'; speak(curPage); }
+function seekTo(val){
+  var was=playing; if(playing){ playing=false; speechSynthesis.cancel(); clearHighlights(); }
+  curPage=parseInt(val); renderPage(curPage); persistProgress(activeBookId,curPage);
+  showSaveNote('\uD83D\uDCBE Saved at page '+(curPage+1));
+  if(was){ playing=true; document.getElementById('play-btn').innerHTML='&#9646;&#9646;'; speak(curPage); }
 }
+
+// ── Sleep timer ────────────────────────────────────────────────────────────
+function setSleepTimer(mins){
+  cancelSleepTimer(); sleepRemaining=mins*60;
+  document.querySelectorAll('.sleep-btn').forEach(function(b){ b.classList.toggle('active',parseInt(b.dataset.mins)===mins); });
+  document.getElementById('sleep-cancel-btn').style.display='inline-block';
+  document.getElementById('sleep-badge').classList.add('active'); updateSleepBadge();
+  sleepInterval=setInterval(function(){ sleepRemaining--; updateSleepBadge(); if(sleepRemaining<=0) triggerSleepStop(); },1000);
+}
+function updateSleepBadge(){
+  var m=Math.floor(sleepRemaining/60),s=sleepRemaining%60;
+  document.getElementById('sleep-countdown').textContent=m+':'+(s<10?'0':'')+s;
+  document.getElementById('sleep-badge').classList.toggle('warning',sleepRemaining<=120);
+}
+function cancelSleepTimer(){
+  if(sleepInterval){ clearInterval(sleepInterval); sleepInterval=null; }
+  sleepRemaining=0; document.getElementById('sleep-badge').classList.remove('active','warning');
+  document.getElementById('sleep-cancel-btn').style.display='none';
+  document.querySelectorAll('.sleep-btn').forEach(function(b){ b.classList.remove('active'); });
+}
+function triggerSleepStop(){
+  cancelSleepTimer(); playing=false; speechSynthesis.cancel(); clearHighlights();
+  document.getElementById('play-btn').innerHTML='&#9654;'; persistProgress(activeBookId,curPage);
+  document.getElementById('sleep-stopped-msg').textContent='Stopped at page '+(curPage+1)+'. Progress saved.';
+  document.getElementById('sleep-stopped').classList.add('visible');
+}
+function dismissSleepStopped(){ document.getElementById('sleep-stopped').classList.remove('visible'); }
 
 // ── Voice ──────────────────────────────────────────────────────────────────
-function pickJenny() {
-  var all = speechSynthesis.getVoices(); if (!all.length) return;
-  var order = ['Microsoft Jenny Online','Microsoft Jenny','Microsoft Aria Online','Microsoft Aria','Microsoft Guy Online','Microsoft Guy'];
-  var found = null;
-  for (var p=0; p<order.length && !found; p++)
-    for (var i=0; i<all.length; i++) if (all[i].name.indexOf(order[p])!==-1){ found=all[i]; break; }
-  if (!found) for (var i=0; i<all.length; i++) if (all[i].lang.startsWith('en')){ found=all[i]; break; }
-  jennyVoice = found;
-  if (found) document.getElementById('voice-pill').textContent = '\uD83C\uDF99\uFE0F ' + found.name;
+function pickJenny(){
+  var all=speechSynthesis.getVoices(); if(!all.length) return;
+  var order=['Microsoft Jenny Online','Microsoft Jenny','Microsoft Aria Online','Microsoft Aria','Microsoft Guy Online','Microsoft Guy'];
+  var found=null;
+  for(var p=0;p<order.length&&!found;p++) for(var i=0;i<all.length;i++) if(all[i].name.indexOf(order[p])!==-1){found=all[i];break;}
+  if(!found) for(var i=0;i<all.length;i++) if(all[i].lang.startsWith('en')){found=all[i];break;}
+  jennyVoice=found; if(found) document.getElementById('voice-pill').textContent='\uD83C\uDF99\uFE0F '+found.name;
 }
-speechSynthesis.onvoiceschanged = pickJenny;
+speechSynthesis.onvoiceschanged=pickJenny;
 
-// ── Loading ────────────────────────────────────────────────────────────────
 function showLoading(m){ document.getElementById('loading-overlay').classList.add('visible'); setLoadingMsg(m); }
 function hideLoading(){ document.getElementById('loading-overlay').classList.remove('visible'); }
-function setLoadingMsg(m){ document.getElementById('loading-msg').textContent = m; }
-
-// ── Helpers ────────────────────────────────────────────────────────────────
+function setLoadingMsg(m){ document.getElementById('loading-msg').textContent=m; }
 var _snTimer;
 function showSaveNote(m){ var el=document.getElementById('save-note'); el.innerHTML=m; clearTimeout(_snTimer); _snTimer=setTimeout(function(){ el.innerHTML=''; },3000); }
-function setStatus(m){ document.getElementById('status').textContent = m; }
+function setStatus(m){ document.getElementById('status').textContent=m; }
 </script>
 </body>
 </html>

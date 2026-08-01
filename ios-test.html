@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iOS File Test</title>
+<style>
+body { font-family: Arial; padding: 2rem; text-align: center; }
+.btn { display: block; background: green; color: white; padding: 20px; border-radius: 10px; font-size: 18px; margin: 20px auto; width: 200px; }
+input[type=file] { display: block; margin: 20px auto; font-size: 16px; }
+#result { margin-top: 20px; font-size: 14px; color: #333; }
+</style>
+</head>
+<body>
+<h2>iOS File Pick Test</h2>
+
+<p>Method 1: Raw input (most basic)</p>
+<input type="file" accept=".pdf,application/pdf" onchange="gotFile(this.files[0], '1')">
+
+<p>Method 2: Label wrapping input</p>
+<label class="btn">
+  Pick PDF
+  <input type="file" accept=".pdf,application/pdf" onchange="gotFile(this.files[0], '2')" style="display:none;">
+</label>
+
+<p>Method 3: Label with for= attribute</p>
+<label class="btn" for="inp3">Pick PDF</label>
+<input type="file" id="inp3" accept=".pdf,application/pdf" onchange="gotFile(this.files[0], '3')" style="display:none;">
+
+<div id="result">Waiting for file...</div>
+
+<script>
+function gotFile(file, method) {
+  if(!file) { document.getElementById('result').textContent = 'Method '+method+': No file received'; return; }
+  document.getElementById('result').textContent = 'Method '+method+' WORKS! File: '+file.name+' ('+Math.round(file.size/1024)+'KB)';
+}
+</script>
+</body>
+</html>

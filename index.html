@@ -38,11 +38,8 @@
   .lib-header h2 { font-size: 14px; font-weight: bold; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
   .add-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: white; border: none; border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: bold; cursor: pointer; }
   .add-btn:hover { background: var(--accent-mid); }
-  #drop-zone { background: var(--surface); border: 1.5px dashed rgba(0,0,0,0.15); border-radius: var(--radius); padding: 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 16px; display: none; }
-  #drop-zone:hover { border-color: var(--accent-mid); background: var(--accent-light); }
   .drop-title { font-family: Georgia, serif; font-size: 1rem; margin-bottom: 4px; }
   .drop-sub { font-size: 12px; color: var(--muted); }
-  #file-input { display: none; }
   .storage-bar-wrap { margin-bottom: 16px; }
   .storage-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
   .storage-track { background: var(--surface2); border-radius: 4px; height: 5px; overflow: hidden; }
@@ -245,13 +242,11 @@
   <div id="library-view" style="display:block;">
     <div class="lib-header">
       <h2>My Library</h2>
-      <button class="add-btn" onclick="toggleDropZone()">&#43; Add Book</button>
+      <label class="add-btn" style="cursor:pointer;">
+        &#43; Add Book
+        <input type="file" accept=".pdf,application/pdf" onchange="loadPDF(this.files[0])" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
+      </label>
     </div>
-    <label id="drop-zone" for="file-input" ondragover="ondragover(event)" ondragleave="ondragleave(event)" ondrop="ondrop(event)" style="display:none;cursor:pointer;">
-      <p class="drop-title">&#128196; Tap to choose a PDF</p>
-      <p class="drop-sub">Saved to your library automatically</p>
-      <input type="file" id="file-input" accept=".pdf,application/pdf" onchange="loadPDF(this.files[0])" style="display:none;">
-    </label>
     <div class="storage-bar-wrap" id="storage-bar-wrap" style="display:none;">
       <div class="storage-label"><span>Library storage</span><span id="storage-label-val"></span></div>
       <div class="storage-track"><div class="storage-fill" id="storage-fill"></div></div>
@@ -628,15 +623,7 @@ function updateStorageBar(){
 }
 
 // ── Drop zone ──────────────────────────────────────────────────────────────
-var dzOpen=false;
-function toggleDropZone(){
-  dzOpen=!dzOpen;
-  var dz=document.getElementById('drop-zone');
-  dz.style.display=dzOpen?'block':'none';
-}
-function ondragover(e){ e.preventDefault(); document.getElementById('drop-zone').style.borderColor='#4A7A28'; }
-function ondragleave(e){ document.getElementById('drop-zone').style.borderColor=''; }
-function ondrop(e){ e.preventDefault(); document.getElementById('drop-zone').style.borderColor=''; var f=e.dataTransfer.files[0]; if(f) loadPDF(f); }
+
 
 // ── PDF load ───────────────────────────────────────────────────────────────
 function loadPDF(file){
@@ -657,9 +644,7 @@ function loadPDF(file){
               if(!writeBookData(id,sp)){ hideLoading(); alert('Not enough storage. Remove a book first.'); return; }
               library.push({id:id,title:title,totalPages:sp.length,currentPage:0,lastRead:null});
               writeIndex(); hideLoading();
-              document.getElementById('drop-zone').style.display='none'; dzOpen=false;
-              document.getElementById('file-input').value='';
-              updateStorageBar(); showReaderView(id);
+                                          updateStorageBar(); showReaderView(id);
             }
           });
         });

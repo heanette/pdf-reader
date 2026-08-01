@@ -922,24 +922,11 @@ var _snTimer;
 function showSaveNote(m){ var el=document.getElementById('save-note'); el.innerHTML=m; clearTimeout(_snTimer); _snTimer=setTimeout(function(){ el.innerHTML=''; },3000); }
 function setStatus(m){ document.getElementById('status').textContent=m; }
 </script>
+<script src="pdf.min.js"></script>
 <script>
-// Load PDF.js dynamically with fallback
-function loadPDFJS(src, workerSrc, cb) {
-  var s = document.createElement('script');
-  s.src = src;
-  s.onload = function() {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
-    cb();
-  };
-  s.onerror = function() { alert('Failed to load PDF engine. Check internet connection and refresh.'); };
-  document.head.appendChild(s);
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
 }
-// Use unpkg as primary — better iOS 15 compatibility than cdnjs
-loadPDFJS(
-  'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js',
-  'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
-  function() { console.log('PDF.js ready'); }
-);
 </script>
 </body>
 </html>

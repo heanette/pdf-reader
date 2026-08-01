@@ -649,44 +649,6 @@ function updateStorageBar(){
 
 
 // ── PDF load ───────────────────────────────────────────────────────────────
-// Pure JS PDF extractor — no external library needed, works on iOS Safari offline
-function pdfExtractText(buffer) {
-  var bytes = new Uint8Array(buffer);
-  var s = '';
-  for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
-  var pages = [], re = /stream([\s\S]*?)endstream/g, m;
-  while ((m = re.exec(s)) !== null) {
-    var t = pdfStreamText(m[1]);
-    if (t.trim().length > 20) pages.push(t.trim());
-  }
-  if (!pages.length) {
-    var fb = '', re2 = /[ -~]{5,}/g;
-    while ((m = re2.exec(s)) !== null) {
-      var chunk = m[0].trim();
-      if (!/^[\d\s.]+$/.test(chunk) && !/obj|endobj|stream|xref|trailer|PDF/.test(chunk)) fb += chunk + ' ';
-    }
-    for (var i = 0; i < fb.length; i += 2000) pages.push(fb.slice(i, i+2000));
-  }
-  return pages;
-}
-function pdfStreamText(stream) {
-  var text = '', m;
-  var r1 = /\(([^)\\]*(?:\\.[^)\\]*)*)\)\s*(?:Tj|'|")/g;
-  while ((m = r1.exec(stream)) !== null) text += pdfDecode(m[1]) + ' ';
-  var r2 = /\[([^\]]+)\]\s*TJ/g;
-  while ((m = r2.exec(stream)) !== null) {
-    var r3 = /\(([^)\\]*(?:\\.[^)\\]*)*)\)/g, sm;
-    while ((sm = r3.exec(m[1])) !== null) text += pdfDecode(sm[1]);
-    text += ' ';
-  }
-  return text;
-}
-function pdfDecode(s) {
-  return s.replace(/\\n/g,' ').replace(/\\r/g,' ').replace(/\\t/g,' ')
-    .replace(/\\(\d{3})/g, function(_,o){ return String.fromCharCode(parseInt(o,8)); })
-    .replace(/\\(.)/g,'$1');
-}
-
 function loadPDF(file) {
   if (!file) return;
   var fileName = file.name;
@@ -694,31 +656,31 @@ function loadPDF(file) {
   var fr = new FileReader();
   fr.onerror = function() { hideLoading(); alert('Could not read file. Please try again.'); };
   fr.onload = function(e) {
-    try {
-      setLoadingMsg('Extracting text…');
-      var rawPages = pdfExtractText(e.target.result);
-      if (!rawPages.length) {
-        hideLoading();
-        alert('No readable text found. This PDF may be scanned or image-based.');
-        return;
+    var data = new Uint8Array(e.target.result);
+    pdfjsLib.getDocument({ data: data }).promise.then(function(pdf) {
+      var total = pdf.numPages, fetched = 0, texts = new Array(total);
+      setLoadingMsg('Loading ' + total + ' pages…');
+      function fetchPage(i) {
+        pdf.getPage(i).then(function(p) {
+          p.getTextContent().then(function(c) {
+            texts[i-1] = c.items.map(function(it){ return it.str; }).join(' ').replace(/\s+/g,' ').trim();
+            fetched++;
+            setLoadingMsg('Processing… ' + fetched + '/' + total);
+            if (fetched === total) {
+              var sp = texts.filter(function(t){ return t && t.length > 10; })
+                           .map(function(t){ return splitSentences(t); });
+              if (!sp.length) { hideLoading(); alert('No readable text found.'); return; }
+              var id = 'book_' + Date.now();
+              var title = fileName.replace(/\.pdf$/i, '');
+              if (!writeBookData(id, sp)) { hideLoading(); alert('Not enough storage. Remove a book first.'); return; }
+              library.push({ id:id, title:title, totalPages:sp.length, currentPage:0, lastRead:null });
+              writeIndex(); hideLoading(); updateStorageBar(); showReaderView(id);
+            }
+          }).catch(function(e){ hideLoading(); alert('Page error: '+e.message); });
+        }).catch(function(e){ hideLoading(); alert('Load error: '+e.message); });
       }
-      var sp = rawPages.map(function(t) { return splitSentences(t); });
-      var id = 'book_' + Date.now();
-      var title = fileName.replace(/\.pdf$/i, '');
-      if (!writeBookData(id, sp)) {
-        hideLoading();
-        alert('Not enough storage. Remove a book first.');
-        return;
-      }
-      library.push({ id:id, title:title, totalPages:sp.length, currentPage:0, lastRead:null });
-      writeIndex();
-      hideLoading();
-      updateStorageBar();
-      showReaderView(id);
-    } catch(err) {
-      hideLoading();
-      alert('Error: ' + err.message);
-    }
+      for (var i = 1; i <= total; i++) fetchPage(i);
+    }).catch(function(err){ hideLoading(); alert('PDF error: '+err.message); });
   };
   fr.readAsArrayBuffer(file);
 }
@@ -959,6 +921,25 @@ function setLoadingMsg(m){ document.getElementById('loading-msg').textContent=m;
 var _snTimer;
 function showSaveNote(m){ var el=document.getElementById('save-note'); el.innerHTML=m; clearTimeout(_snTimer); _snTimer=setTimeout(function(){ el.innerHTML=''; },3000); }
 function setStatus(m){ document.getElementById('status').textContent=m; }
+</script>
+<script>
+// Load PDF.js dynamically with fallback
+function loadPDFJS(src, workerSrc, cb) {
+  var s = document.createElement('script');
+  s.src = src;
+  s.onload = function() {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+    cb();
+  };
+  s.onerror = function() { alert('Failed to load PDF engine. Check internet connection and refresh.'); };
+  document.head.appendChild(s);
+}
+// Use unpkg as primary — better iOS 15 compatibility than cdnjs
+loadPDFJS(
+  'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js',
+  'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+  function() { console.log('PDF.js ready'); }
+);
 </script>
 </body>
 </html>

@@ -242,9 +242,10 @@
   <div id="library-view" style="display:block;">
     <div class="lib-header">
       <h2>My Library</h2>
-      <label class="add-btn" style="cursor:pointer;">
+      <label class="add-btn" style="cursor:pointer;position:relative;overflow:hidden;">
         &#43; Add Book
-        <input type="file" accept=".pdf,application/pdf" onchange="loadPDF(this.files[0])" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
+        <input type="file" accept=".pdf,application/pdf" onchange="loadPDF(this.files[0])"
+          style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px;">
       </label>
     </div>
     <div class="storage-bar-wrap" id="storage-bar-wrap" style="display:none;">

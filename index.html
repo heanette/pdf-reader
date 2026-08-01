@@ -242,10 +242,10 @@
   <div id="library-view" style="display:block;">
     <div class="lib-header">
       <h2>My Library</h2>
-      <label class="add-btn" style="cursor:pointer;">
+      <label class="add-btn" for="addbook-input" style="cursor:pointer;display:inline-flex;">
         &#43; Add Book
-        <input type="file" accept=".pdf,application/pdf" style="display:none;" onchange="loadPDF(this.files[0])">
       </label>
+      <input type="file" id="addbook-input" accept=".pdf,application/pdf" onchange="loadPDF(this.files[0])" style="opacity:0;position:fixed;top:-100px;left:-100px;width:1px;height:1px;">
     </div>
     <div class="storage-bar-wrap" id="storage-bar-wrap" style="display:none;">
       <div class="storage-label"><span>Library storage</span><span id="storage-label-val"></span></div>
@@ -345,9 +345,7 @@
   <footer>Works on Chrome, Edge, Safari &middot; desktop &amp; mobile &middot; 100% free forever</footer>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 var IDX_KEY='pdfLib_index', BOOK_PFX='pdfLib_book_', RULES_PFX='pdfLib_rules_';
 var library=[], activeBookId=null, pages=[], curPage=0;
@@ -366,13 +364,6 @@ var pendingStart=null;   // {sig, preview, pageIdx, sentIdx}
 
 document.addEventListener('DOMContentLoaded', function(){
   library=readIndex(); loadVoices(); showLibraryView();
-  // Check PDF.js loaded correctly
-  if(typeof pdfjsLib === 'undefined'){
-    setTimeout(function(){
-      if(typeof pdfjsLib === 'undefined')
-        alert('PDF engine failed to load. Please check your internet connection and refresh the page.');
-    }, 3000);
-  }
 });
 // Fallback for Safari cached pages
 window.onload=function(){ if(document.getElementById('library-view').style.display==='none'){ library=readIndex(); loadVoices(); showLibraryView(); } };
@@ -408,10 +399,35 @@ function writeAllRules(id){ localStorage.setItem(RULES_PFX+id,JSON.stringify({ph
 
 // ── Sentence splitting ─────────────────────────────────────────────────────
 function splitSentences(text){
-  var parts=text.split(/(?<=[.!?])\s{2,}(?=[A-Z])|(?<=[.!?])\s+(?=[A-Z][a-z])/);
-  var result=[];
-  parts.forEach(function(p){ p=p.trim(); if(!p) return; if(p.length>400){ p.split(/(?<=[.!?])\s+/).forEach(function(s){ s=s.trim(); if(s) result.push(s); }); }else result.push(p); });
-  return result.length?result:[text.trim()];
+  // iOS-compatible sentence splitting — no lookbehind regex
+  var result = [];
+  var current = '';
+  for (var i = 0; i < text.length; i++) {
+    current += text[i];
+    // Split after sentence-ending punctuation followed by space + capital
+    if ((text[i] === '.' || text[i] === '!' || text[i] === '?') &&
+        i + 2 < text.length &&
+        (text[i+1] === ' ' || text[i+1] === '  ') &&
+        text[i+2] >= 'A' && text[i+2] <= 'Z') {
+      current = current.trim();
+      if (current.length > 0) result.push(current);
+      current = '';
+      i++; // skip the space
+    }
+  }
+  if (current.trim().length > 0) result.push(current.trim());
+  // If nothing split, chunk by length
+  if (result.length <= 1 && text.length > 400) {
+    result = [];
+    var words = text.split(' ');
+    var chunk = '';
+    for (var w = 0; w < words.length; w++) {
+      chunk += (chunk ? ' ' : '') + words[w];
+      if (chunk.length > 300) { result.push(chunk); chunk = ''; }
+    }
+    if (chunk) result.push(chunk);
+  }
+  return result.length ? result : [text.trim()];
 }
 
 // ── Sentence signature (for block rules) ──────────────────────────────────
@@ -633,47 +649,76 @@ function updateStorageBar(){
 
 
 // ── PDF load ───────────────────────────────────────────────────────────────
-function loadPDF(file){
-  if(!file){ alert('Step 1 FAIL: no file'); return; }
-  alert('Step 1 OK: got file '+file.name);
-  if(typeof pdfjsLib === 'undefined'){ alert('Step 2 FAIL: PDF engine not loaded'); return; }
-  alert('Step 2 OK: PDF engine ready');
-  // iOS Safari: read the file immediately and synchronously before anything async
-  var fileName = file.name;
-  showLoading('Reading PDF\u2026');
-  var fr = new FileReader();
-  fr.onerror = function(){ hideLoading(); alert('Could not read the file. Please try again.'); };
-  fr.onload = function(e){
-    var arrayBuffer = e.target.result;
-    if(!arrayBuffer || arrayBuffer.byteLength === 0){
-      hideLoading(); alert('File appears empty. Please try a different PDF.'); return;
+// Pure JS PDF extractor — no external library needed, works on iOS Safari offline
+function pdfExtractText(buffer) {
+  var bytes = new Uint8Array(buffer);
+  var s = '';
+  for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  var pages = [], re = /stream([\s\S]*?)endstream/g, m;
+  while ((m = re.exec(s)) !== null) {
+    var t = pdfStreamText(m[1]);
+    if (t.trim().length > 20) pages.push(t.trim());
+  }
+  if (!pages.length) {
+    var fb = '', re2 = /[ -~]{5,}/g;
+    while ((m = re2.exec(s)) !== null) {
+      var chunk = m[0].trim();
+      if (!/^[\d\s.]+$/.test(chunk) && !/obj|endobj|stream|xref|trailer|PDF/.test(chunk)) fb += chunk + ' ';
     }
-    // Convert to Uint8Array immediately — iOS releases ArrayBuffer references quickly
-    var data = new Uint8Array(arrayBuffer);
-    pdfjsLib.getDocument({data: data}).promise.then(function(pdf){
-      var total=pdf.numPages, fetched=0, texts=new Array(total);
-      setLoadingMsg('Loading '+total+' pages\u2026');
-      function fetchPage(i){
-        pdf.getPage(i).then(function(p){
-          p.getTextContent().then(function(c){
-            texts[i-1]=c.items.map(function(it){ return it.str; }).join(' ').replace(/\s+/g,' ').trim();
-            fetched++;
-            setLoadingMsg('Processing\u2026 '+fetched+'/'+total);
-            if(fetched===total){
-              var sp=texts.filter(function(t){ return t&&t.length>10; }).map(function(t){ return splitSentences(t); });
-              if(!sp.length){ hideLoading(); alert('No readable text found. This may be a scanned PDF.'); return; }
-              var id='book_'+Date.now();
-              var title=fileName.replace(/\.pdf$/i,'');
-              if(!writeBookData(id,sp)){ hideLoading(); alert('Not enough storage. Remove a book first.'); return; }
-              library.push({id:id,title:title,totalPages:sp.length,currentPage:0,lastRead:null});
-              writeIndex(); hideLoading();
-              updateStorageBar(); showReaderView(id);
-            }
-          }).catch(function(err){ hideLoading(); alert('Page read error: '+err.message); });
-        }).catch(function(err){ hideLoading(); alert('Page load error: '+err.message); });
+    for (var i = 0; i < fb.length; i += 2000) pages.push(fb.slice(i, i+2000));
+  }
+  return pages;
+}
+function pdfStreamText(stream) {
+  var text = '', m;
+  var r1 = /\(([^)\\]*(?:\\.[^)\\]*)*)\)\s*(?:Tj|'|")/g;
+  while ((m = r1.exec(stream)) !== null) text += pdfDecode(m[1]) + ' ';
+  var r2 = /\[([^\]]+)\]\s*TJ/g;
+  while ((m = r2.exec(stream)) !== null) {
+    var r3 = /\(([^)\\]*(?:\\.[^)\\]*)*)\)/g, sm;
+    while ((sm = r3.exec(m[1])) !== null) text += pdfDecode(sm[1]);
+    text += ' ';
+  }
+  return text;
+}
+function pdfDecode(s) {
+  return s.replace(/\\n/g,' ').replace(/\\r/g,' ').replace(/\\t/g,' ')
+    .replace(/\\(\d{3})/g, function(_,o){ return String.fromCharCode(parseInt(o,8)); })
+    .replace(/\\(.)/g,'$1');
+}
+
+function loadPDF(file) {
+  if (!file) return;
+  var fileName = file.name;
+  showLoading('Reading PDF…');
+  var fr = new FileReader();
+  fr.onerror = function() { hideLoading(); alert('Could not read file. Please try again.'); };
+  fr.onload = function(e) {
+    try {
+      setLoadingMsg('Extracting text…');
+      var rawPages = pdfExtractText(e.target.result);
+      if (!rawPages.length) {
+        hideLoading();
+        alert('No readable text found. This PDF may be scanned or image-based.');
+        return;
       }
-      for(var i=1;i<=total;i++) fetchPage(i);
-    }).catch(function(err){ hideLoading(); alert('Could not open PDF: '+err.message); });
+      var sp = rawPages.map(function(t) { return splitSentences(t); });
+      var id = 'book_' + Date.now();
+      var title = fileName.replace(/\.pdf$/i, '');
+      if (!writeBookData(id, sp)) {
+        hideLoading();
+        alert('Not enough storage. Remove a book first.');
+        return;
+      }
+      library.push({ id:id, title:title, totalPages:sp.length, currentPage:0, lastRead:null });
+      writeIndex();
+      hideLoading();
+      updateStorageBar();
+      showReaderView(id);
+    } catch(err) {
+      hideLoading();
+      alert('Error: ' + err.message);
+    }
   };
   fr.readAsArrayBuffer(file);
 }

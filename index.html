@@ -634,7 +634,9 @@ function updateStorageBar(){
 
 // ── PDF load ───────────────────────────────────────────────────────────────
 function loadPDF(file){
-  if(!file){ alert('No file selected. Please try again.'); return; }
+  if(!file){ alert('No file selected.'); return; }
+  if(typeof pdfjsLib === 'undefined'){ alert('PDF engine not loaded. Check internet and refresh.'); return; }
+  alert('File received: '+file.name+' ('+Math.round(file.size/1024)+'KB) - loading...');
   // iOS Safari: read the file immediately and synchronously before anything async
   var fileName = file.name;
   showLoading('Reading PDF\u2026');

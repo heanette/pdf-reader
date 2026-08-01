@@ -21,6 +21,17 @@
   h1 { font-family: Georgia, serif; font-size: 1.6rem; font-weight: normal; letter-spacing: -0.02em; }
   .tagline { font-size: 12px; color: var(--muted); margin-top: 3px; }
   #library-view, #reader-view { display: none; }
+  /* Mobile fix */
+  @media (max-width: 600px) {
+    .wrap { padding: 1rem 0.75rem 3rem; }
+    h1 { font-size: 1.3rem; }
+    .book-card { flex-wrap: wrap; }
+    .controls { padding: 1rem; }
+    .sleep-row { gap: 5px; }
+    .sleep-btn { padding: 4px 8px; font-size: 11px; }
+    .skip-tools { flex-direction: column; }
+    #text-display { max-height: 220px; font-size: 14px; }
+  }
 
   /* Library */
   .lib-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -186,7 +197,6 @@
   .setting-row label { font-size: 12px; color: var(--muted); min-width: 44px; }
   .setting-row input[type=range] { flex: 1; }
   .val { font-size: 12px; font-weight: bold; color: var(--accent); min-width: 36px; text-align: right; }
-  .voice-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-light); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--accent); }
   .sleep-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .sleep-row label { font-size: 12px; color: var(--muted); min-width: 44px; }
   .sleep-btn { font-size: 12px; border-radius: 20px; padding: 4px 12px; cursor: pointer; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); transition: all 0.15s; }
@@ -233,7 +243,7 @@
   </div>
 
   <!-- LIBRARY -->
-  <div id="library-view">
+  <div id="library-view" style="display:block;">
     <div class="lib-header">
       <h2>My Library</h2>
       <button class="add-btn" onclick="toggleDropZone()">&#43; Add Book</button>
@@ -311,7 +321,7 @@
       </div>
       <div class="setting-row">
         <label>Voice</label>
-        <span class="voice-pill" id="voice-pill">&#127908; Microsoft Jenny</span>
+        <select id="voice-select" onchange="onVoiceChanged()" style="flex:1;font-size:13px;font-family:Arial,sans-serif;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 10px;background:var(--accent-light);color:var(--accent);outline:none;cursor:pointer;"></select>
       </div>
       <div class="setting-row">
         <label>Speed</label>
@@ -334,7 +344,6 @@
         <button id="sleep-cancel-btn" onclick="cancelSleepTimer()">&#215; Cancel</button>
       </div>
     </div>
-
     <div id="save-note"></div>
     <div id="status"></div>
   </div>
@@ -361,7 +370,11 @@ var phraseRules=[], blockRules=[];
 var markMode=null;       // 'start' | 'end' | null
 var pendingStart=null;   // {sig, preview, pageIdx, sentIdx}
 
-window.onload=function(){ library=readIndex(); pickJenny(); showLibraryView(); };
+document.addEventListener('DOMContentLoaded', function(){
+  library=readIndex(); loadVoices(); showLibraryView();
+});
+// Fallback for Safari cached pages
+window.onload=function(){ if(document.getElementById('library-view').style.display==='none'){ library=readIndex(); loadVoices(); showLibraryView(); } };
 
 // ── Storage ────────────────────────────────────────────────────────────────
 function readIndex(){ try{ return JSON.parse(localStorage.getItem(IDX_KEY))||[]; }catch(e){ return []; } }
@@ -795,15 +808,94 @@ function triggerSleepStop(){
 function dismissSleepStopped(){ document.getElementById('sleep-stopped').classList.remove('visible'); }
 
 // ── Voice ──────────────────────────────────────────────────────────────────
-function pickJenny(){
-  var all=speechSynthesis.getVoices(); if(!all.length) return;
-  var order=['Microsoft Jenny Online','Microsoft Jenny','Microsoft Aria Online','Microsoft Aria','Microsoft Guy Online','Microsoft Guy'];
-  var found=null;
-  for(var p=0;p<order.length&&!found;p++) for(var i=0;i<all.length;i++) if(all[i].name.indexOf(order[p])!==-1){found=all[i];break;}
-  if(!found) for(var i=0;i<all.length;i++) if(all[i].lang.startsWith('en')){found=all[i];break;}
-  jennyVoice=found; if(found) document.getElementById('voice-pill').textContent='\uD83C\uDF99\uFE0F '+found.name;
+// Only accept Jenny. Never fall back to other voices silently.
+// Retry up to 10 times over 5 seconds (browsers load voices asynchronously).
+var VOICE_KEY='pdfReader_voice';
+var allVoices=[];
+
+function loadVoices(){
+  var vs=speechSynthesis.getVoices();
+  if(!vs.length){ setTimeout(loadVoices,300); return; }
+  allVoices=vs;
+  populateVoiceDropdown();
+  // Only apply preferred voice if user hasn't already picked one this session
+  if(!jennyVoice) applyPreferredVoice();
+  else {
+    // Re-check saved voice is still available after voice list reload
+    var saved=localStorage.getItem(VOICE_KEY);
+    if(saved){
+      var match=allVoices.find(function(v){ return v.name===saved; });
+      if(match){
+        jennyVoice=match;
+        var sel=document.getElementById('voice-select');
+        if(sel) sel.value=match.name;
+      }
+      // If saved voice gone, keep current jennyVoice as-is (don't override)
+    }
+  }
 }
-speechSynthesis.onvoiceschanged=pickJenny;
+
+function populateVoiceDropdown(){
+  var sel=document.getElementById('voice-select');
+  if(!sel) return;
+  sel.innerHTML='';
+  var eng=allVoices.filter(function(v){ return v.lang.startsWith('en'); });
+  var rest=allVoices.filter(function(v){ return !v.lang.startsWith('en'); });
+  var qualityOrder=[
+    'Jenny Online (Natural)','Jenny Online','Jenny',
+    'Aria Online (Natural)','Aria Online','Aria',
+    'Guy Online (Natural)','Guy Online','Guy',
+    'Michelle','Elizabeth','Zira','Hazel','Sean'
+  ];
+  function voiceRank(name){
+    for(var q=0;q<qualityOrder.length;q++) if(name.indexOf(qualityOrder[q])!==-1) return q;
+    return 99;
+  }
+  eng.sort(function(a,b){ return voiceRank(a.name)-voiceRank(b.name); });
+  var goodVoices=['Jenny','Aria','Guy','Michelle','Elizabeth'];
+  eng.concat(rest).forEach(function(v){
+    var opt=document.createElement('option');
+    opt.value=v.name;
+    var isGood=goodVoices.some(function(g){ return v.name.indexOf(g)!==-1; });
+    var isOnline=/online|natural/i.test(v.name);
+    var badge=isOnline?' ⭐':isGood?' ✓':'';
+    opt.textContent=v.name+' ('+v.lang+')'+badge;
+    sel.appendChild(opt);
+  });
+}
+
+function applyPreferredVoice(){
+  var sel=document.getElementById('voice-select');
+  if(!sel) return;
+  var saved=localStorage.getItem(VOICE_KEY);
+  // Try saved preference first
+  if(saved){
+    var match=allVoices.find(function(v){ return v.name===saved; });
+    if(match){ jennyVoice=match; sel.value=match.name; return; }
+  }
+  // No saved pref or saved voice gone — pick best available
+  var preferred=[
+    'Microsoft Jenny Online (Natural)','Microsoft Jenny Online','Microsoft Jenny',
+    'Microsoft Aria Online (Natural)','Microsoft Aria Online','Microsoft Aria',
+    'Microsoft Guy Online (Natural)','Microsoft Guy Online','Microsoft Guy',
+    'Microsoft Michelle','Microsoft Elizabeth',
+    'Google US English Female','Google US English',
+    'Samantha','Karen','Moira','Fiona'];
+  var found=null;
+  for(var p=0;p<preferred.length&&!found;p++)
+    for(var i=0;i<allVoices.length;i++)
+      if(allVoices[i].name.indexOf(preferred[p])!==-1){ found=allVoices[i]; break; }
+  if(!found) found=allVoices.find(function(v){ return v.lang.startsWith('en'); })||allVoices[0];
+  if(found){ jennyVoice=found; sel.value=found.name; }
+}
+
+function onVoiceChanged(){
+  var sel=document.getElementById('voice-select');
+  var match=allVoices.find(function(v){ return v.name===sel.value; });
+  if(match){ jennyVoice=match; localStorage.setItem(VOICE_KEY,match.name); }
+}
+
+speechSynthesis.onvoiceschanged=function(){ loadVoices(); };
 
 function showLoading(m){ document.getElementById('loading-overlay').classList.add('visible'); setLoadingMsg(m); }
 function hideLoading(){ document.getElementById('loading-overlay').classList.remove('visible'); }

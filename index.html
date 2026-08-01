@@ -242,10 +242,9 @@
   <div id="library-view" style="display:block;">
     <div class="lib-header">
       <h2>My Library</h2>
-      <label class="add-btn" style="cursor:pointer;position:relative;overflow:hidden;">
+      <label class="add-btn" style="cursor:pointer;">
         &#43; Add Book
-        <input type="file" accept=".pdf,application/pdf" onchange="loadPDF(this.files[0])"
-          style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px;">
+        <input type="file" accept=".pdf,application/pdf" style="display:none;" onchange="loadPDF(this.files[0])">
       </label>
     </div>
     <div class="storage-bar-wrap" id="storage-bar-wrap" style="display:none;">
@@ -635,9 +634,10 @@ function updateStorageBar(){
 
 // ── PDF load ───────────────────────────────────────────────────────────────
 function loadPDF(file){
-  if(!file){ alert('No file selected.'); return; }
-  if(typeof pdfjsLib === 'undefined'){ alert('PDF engine not loaded. Check internet and refresh.'); return; }
-  alert('File received: '+file.name+' ('+Math.round(file.size/1024)+'KB) - loading...');
+  if(!file){ alert('Step 1 FAIL: no file'); return; }
+  alert('Step 1 OK: got file '+file.name);
+  if(typeof pdfjsLib === 'undefined'){ alert('Step 2 FAIL: PDF engine not loaded'); return; }
+  alert('Step 2 OK: PDF engine ready');
   // iOS Safari: read the file immediately and synchronously before anything async
   var fileName = file.name;
   showLoading('Reading PDF\u2026');
